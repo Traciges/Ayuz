@@ -90,8 +90,7 @@ impl Component for FnKeyModel {
 
         let zeile_normal = adw::ActionRow::new();
         zeile_normal.set_title("Normale Fn-Taste");
-        zeile_normal
-            .set_subtitle("Drücken Sie F1–F12, um die F1–F12-Funktionen zu verwenden.");
+        zeile_normal.set_subtitle("Drücken Sie F1–F12, um die F1–F12-Funktionen zu verwenden.");
         zeile_normal.add_prefix(&check_normal);
         zeile_normal.set_activatable_widget(Some(&check_normal));
 
@@ -121,7 +120,10 @@ impl Component for FnKeyModel {
                         Err(_) => false,
                     };
 
-                    out.emit(FnKeyCommandOutput::InitWert { gesperrt, unterstuetzt });
+                    out.emit(FnKeyCommandOutput::InitWert {
+                        gesperrt,
+                        unterstuetzt,
+                    });
                 })
                 .drop_on_shutdown()
         });
@@ -194,7 +196,10 @@ impl Component for FnKeyModel {
         _root: &Self::Root,
     ) {
         match msg {
-            FnKeyCommandOutput::InitWert { gesperrt, unterstuetzt } => {
+            FnKeyCommandOutput::InitWert {
+                gesperrt,
+                unterstuetzt,
+            } => {
                 self.gesperrt = gesperrt;
                 self.unterstuetzt = unterstuetzt;
 
@@ -205,9 +210,8 @@ impl Component for FnKeyModel {
                 }
 
                 if unterstuetzt {
-                    self.zeile_hinweis.set_subtitle(
-                        "Änderungen werden erst nach einem Systemneustart wirksam.",
-                    );
+                    self.zeile_hinweis
+                        .set_subtitle("Änderungen werden erst nach einem Systemneustart wirksam.");
                 } else {
                     self.check_gesperrt.set_sensitive(false);
                     self.check_normal.set_sensitive(false);
@@ -227,7 +231,8 @@ impl Component for FnKeyModel {
             }
             FnKeyCommandOutput::Fehler(e) => {
                 eprintln!("Fehler (FnKey): {e}");
-                self.zeile_hinweis.set_subtitle(&format!("Fehler beim Speichern: {e}"));
+                self.zeile_hinweis
+                    .set_subtitle(&format!("Fehler beim Speichern: {e}"));
             }
         }
     }

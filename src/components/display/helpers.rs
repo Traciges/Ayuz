@@ -33,7 +33,7 @@ pub(crate) async fn setup_icm_profiles() -> Result<std::path::PathBuf, String> {
 pub(crate) async fn icm_profil_reset() -> Result<(), String> {
     let result = tokio::task::spawn_blocking(|| {
         std::process::Command::new("kscreen-doctor")
-            .arg("output.eDP-1.profile.reset")
+            .arg("output.eDP-1.colorProfileSource.EDID")
             .status()
     })
     .await;
