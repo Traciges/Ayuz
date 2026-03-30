@@ -1,6 +1,7 @@
 mod backend;
 mod components;
 mod services;
+mod tray;
 
 use components::battery::BatteryModel;
 use components::display::FarbskalaModel;
@@ -15,7 +16,14 @@ use relm4::adw;
 use relm4::adw::prelude::*;
 use relm4::prelude::*;
 
+#[derive(Debug)]
+pub enum AppMsg {
+    ShowWindow,
+}
+
 struct AppModel {
+    window: gtk4::glib::WeakRef<adw::ApplicationWindow>,
+    _tray: ksni::Handle<tray::ZenbookTray>,
     battery: Controller<BatteryModel>,
     fan: Controller<FanModel>,
     oled_care: Controller<OledCareModel>,
@@ -30,7 +38,7 @@ struct AppModel {
 #[relm4::component]
 impl SimpleComponent for AppModel {
     type Init = ();
-    type Input = ();
+    type Input = AppMsg;
     type Output = ();
 
     view! {
@@ -67,10 +75,21 @@ impl SimpleComponent for AppModel {
         }
     }
 
+    fn update(&mut self, message: AppMsg, _sender: ComponentSender<Self>) {
+        match message {
+            AppMsg::ShowWindow => {
+                if let Some(window) = self.window.upgrade() {
+                    window.set_visible(true);
+                    window.present();
+                }
+            }
+        }
+    }
+
     fn init(
         _init: Self::Init,
         root: Self::Root,
-        _sender: ComponentSender<Self>,
+        sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let battery = BatteryModel::builder().launch(()).detach();
         let fan = FanModel::builder().launch(()).detach();
@@ -82,7 +101,15 @@ impl SimpleComponent for AppModel {
         let auto_beleuchtung = AutoBeleuchtungModel::builder().launch(()).detach();
         let ruhezustand = RuhezustandModel::builder().launch(()).detach();
 
+        let tray_svc = ksni::TrayService::new(tray::ZenbookTray {
+            app_sender: sender.input_sender().clone(),
+        });
+        let tray_handle = tray_svc.handle();
+        tray_svc.spawn();
+
         let model = AppModel {
+            window: root.downgrade(),
+            _tray: tray_handle,
             battery,
             fan,
             oled_care,
@@ -103,6 +130,12 @@ impl SimpleComponent for AppModel {
         let auto_beleuchtung_widget = model.auto_beleuchtung.widget();
         let ruhezustand_widget = model.ruhezustand.widget();
         let widgets = view_output!();
+
+        root.connect_close_request(|window| {
+            window.set_visible(false);
+            gtk4::glib::Propagation::Stop
+        });
+
         ComponentParts { model, widgets }
     }
 }
