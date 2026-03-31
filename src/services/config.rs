@@ -8,6 +8,9 @@ fn default_aufhellung_schwelle() -> f64 {
 fn default_abdunklung_schwelle() -> f64 {
     35.0
 }
+fn default_touchpad_aktiv() -> bool {
+    true
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AppConfig {
@@ -34,6 +37,8 @@ pub struct AppConfig {
     pub kbd_aufhellung_schwelle: f64,
     #[serde(default = "default_abdunklung_schwelle")]
     pub kbd_abdunklung_schwelle: f64,
+    #[serde(default = "default_touchpad_aktiv")]
+    pub touchpad_aktiv: bool,
 }
 
 impl Default for AppConfig {
@@ -55,6 +60,7 @@ impl Default for AppConfig {
             kbd_timeout_nur_akku_index: 0,
             kbd_aufhellung_schwelle: default_aufhellung_schwelle(),
             kbd_abdunklung_schwelle: default_abdunklung_schwelle(),
+            touchpad_aktiv: default_touchpad_aktiv(),
         }
     }
 }

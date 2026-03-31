@@ -5,6 +5,7 @@ use crate::components::keyboard::AutoBeleuchtungModel;
 use crate::components::keyboard::FnKeyModel;
 use crate::components::keyboard::GesturenModel;
 use crate::components::keyboard::RuhezustandModel;
+use crate::components::keyboard::TouchpadModel;
 use crate::components::system::battery::BatteryModel;
 use crate::components::system::fan::FanModel;
 use crate::tray;
@@ -29,6 +30,7 @@ pub struct AppModel {
     zielmodus: Controller<ZielmodusModel>,
     fn_key: Controller<FnKeyModel>,
     gesten: Controller<GesturenModel>,
+    touchpad: Controller<TouchpadModel>,
     auto_beleuchtung: Controller<AutoBeleuchtungModel>,
     ruhezustand: Controller<RuhezustandModel>,
 }
@@ -103,6 +105,9 @@ impl SimpleComponent for AppModel {
         let gesten = GesturenModel::builder()
             .launch(())
             .forward(sender.input_sender(), fehler);
+        let touchpad = TouchpadModel::builder()
+            .launch(())
+            .forward(sender.input_sender(), fehler);
         let auto_beleuchtung = AutoBeleuchtungModel::builder()
             .launch(())
             .forward(sender.input_sender(), fehler);
@@ -129,6 +134,7 @@ impl SimpleComponent for AppModel {
             zielmodus,
             fn_key,
             gesten,
+            touchpad,
             auto_beleuchtung,
             ruhezustand,
         };
@@ -140,6 +146,7 @@ impl SimpleComponent for AppModel {
         let zielmodus_widget = model.zielmodus.widget();
         let fn_key_widget = model.fn_key.widget();
         let gesten_widget = model.gesten.widget();
+        let touchpad_widget = model.touchpad.widget();
         let auto_beleuchtung_widget = model.auto_beleuchtung.widget();
         let ruhezustand_widget = model.ruhezustand.widget();
 
@@ -152,6 +159,7 @@ impl SimpleComponent for AppModel {
         my_stack.add_titled_with_icon(&anzeige_page, None, "Anzeige", "monitor-symbolic");
 
         let tastatur_page = adw::PreferencesPage::new();
+        tastatur_page.add(touchpad_widget);
         tastatur_page.add(auto_beleuchtung_widget);
         tastatur_page.add(ruhezustand_widget);
         tastatur_page.add(fn_key_widget);
