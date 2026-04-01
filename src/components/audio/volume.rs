@@ -22,7 +22,7 @@ impl SimpleComponent for VolumeModel {
 
     view! {
         adw::PreferencesGroup {
-            set_title: &t!("volume_booster_title"),
+            set_title: &gtk::glib::markup_escape_text(&t!("volume_booster_title")),
             set_description: Some(&t!("volume_booster_desc")),
 
             add = &adw::ActionRow {

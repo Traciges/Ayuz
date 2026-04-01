@@ -1,4 +1,7 @@
 app_title: "Zenbook Control Center"
+search_placeholder: "Search settings..."
+search_no_results: "No results found"
+search_results_title: "Search Results"
 app_settings_title: "App Settings"
 language_title: "Language"
 tab_display: "Display"
@@ -116,7 +119,7 @@ error_touchpad_unsupported_desktop: "Desktop environment '%{desktop}' is not sup
 error_touchpad_kde: "KDE touchpad toggle failed. %{error}"
 
 # battery
-battery_group_title: "Energy &amp; Performance"
+battery_group_title: "Energy & Performance"
 battery_maintenance_title: "Battery Maintenance Mode"
 battery_maintenance_subtitle: "Enable Battery Maintenance Mode to limit charging to 80% of full capacity, extending battery life."
 battery_full_charge_title: "Full Charge Now Mode"
@@ -129,7 +132,7 @@ battery_charge_limit_set: "Charge limit set to %{value}%"
 
 # audio
 tab_audio: "Audio & Microphone"
-volume_booster_title: "Volume &amp; Booster"
+volume_booster_title: "Volume & Booster"
 volume_booster_desc: "Adjust system volume and boost up to 150%."
 volume_level_label: "Volume"
 audio_profiles_title: "Sound Profiles"

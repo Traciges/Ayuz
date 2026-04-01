@@ -1,3 +1,4 @@
+use gtk4::glib;
 use relm4::adw;
 use relm4::adw::prelude::*;
 use relm4::prelude::*;
@@ -40,7 +41,7 @@ impl Component for BatteryModel {
 
     view! {
         adw::PreferencesGroup {
-            set_title: &t!("battery_group_title"),
+            set_title: &glib::markup_escape_text(&t!("battery_group_title")),
 
             add = &adw::SwitchRow {
                 set_title: &t!("battery_maintenance_title"),
