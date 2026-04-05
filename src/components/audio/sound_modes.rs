@@ -108,7 +108,6 @@ impl Component for SoundModesModel {
         let dropdown = gtk::DropDown::new(Some(optionen), gtk::Expression::NONE);
         dropdown.set_valign(gtk::Align::Center);
         dropdown.set_selected(config.audio_profil);
-        dropdown.set_sensitive(false); // bis EE-Check abgeschlossen
 
         {
             let sender = sender.clone();
