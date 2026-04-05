@@ -32,6 +32,7 @@ trait SensorProxy {
 // ──────────────────────────────────────────────────────────────────────────────
 
 pub struct AutoBeleuchtungModel {
+    sensor_verfuegbar: bool,
     aufhellung_aktiv: bool,
     abdunklung_aktiv: bool,
     aufhellung_schwelle: f64,
@@ -50,6 +51,7 @@ pub enum AutoBeleuchtungMsg {
 
 #[derive(Debug)]
 pub enum AutoBeleuchtungCommandOutput {
+    SensorGeprueft(bool),
     Fehler(String),
     LuxAktualisiert(f64),
 }
@@ -66,12 +68,25 @@ impl Component for AutoBeleuchtungModel {
             set_title: &t!("backlight_group_title"),
             set_description: Some(&t!("backlight_group_desc")),
 
+            add = &gtk::Label {
+                #[watch]
+                set_visible: !model.sensor_verfuegbar,
+                set_label: &t!("backlight_sensor_missing_warning"),
+                add_css_class: "error",
+                set_wrap: true,
+                set_xalign: 0.0,
+                set_margin_top: 8,
+                set_margin_start: 12,
+                set_margin_end: 12,
+                set_margin_bottom: 4,
+            },
+
             add = &adw::ActionRow {
                 set_title: &t!("backlight_light_level_title"),
                 set_subtitle: &t!("backlight_light_level_subtitle"),
 
                 #[watch]
-                set_visible: model.aufhellung_aktiv || model.abdunklung_aktiv,
+                set_visible: model.sensor_verfuegbar && (model.aufhellung_aktiv || model.abdunklung_aktiv),
 
                 add_suffix = &gtk::Label {
                     #[watch]
@@ -89,6 +104,8 @@ impl Component for AutoBeleuchtungModel {
                 set_subtitle: &t!("backlight_auto_on_subtitle"),
 
                 #[watch]
+                set_sensitive: model.sensor_verfuegbar,
+                #[watch]
                 set_active: model.aufhellung_aktiv,
 
                 connect_active_notify[sender] => move |switch| {
@@ -101,7 +118,7 @@ impl Component for AutoBeleuchtungModel {
                 set_subtitle: &t!("backlight_threshold_on_subtitle"),
 
                 #[watch]
-                set_sensitive: model.aufhellung_aktiv,
+                set_sensitive: model.sensor_verfuegbar && model.aufhellung_aktiv,
 
                 add_suffix = &gtk::SpinButton::with_range(0.0, 1000.0, 1.0) {
                     set_valign: gtk::Align::Center,
@@ -120,6 +137,8 @@ impl Component for AutoBeleuchtungModel {
                 set_subtitle: &t!("backlight_auto_off_subtitle"),
 
                 #[watch]
+                set_sensitive: model.sensor_verfuegbar,
+                #[watch]
                 set_active: model.abdunklung_aktiv,
 
                 connect_active_notify[sender] => move |switch| {
@@ -132,7 +151,7 @@ impl Component for AutoBeleuchtungModel {
                 set_subtitle: &t!("backlight_threshold_off_subtitle"),
 
                 #[watch]
-                set_sensitive: model.abdunklung_aktiv,
+                set_sensitive: model.sensor_verfuegbar && model.abdunklung_aktiv,
 
                 add_suffix = &gtk::SpinButton::with_range(0.0, 1000.0, 1.0) {
                     set_valign: gtk::Align::Center,
@@ -159,28 +178,27 @@ impl Component for AutoBeleuchtungModel {
         let aufhellung_schwelle = config.kbd_aufhellung_schwelle;
         let abdunklung_schwelle = config.kbd_abdunklung_schwelle;
 
-        let loop_tx = if aufhellung || abdunklung {
-            Some(start_sensor_loop(
-                aufhellung,
-                aufhellung_schwelle,
-                abdunklung,
-                abdunklung_schwelle,
-                &sender,
-            ))
-        } else {
-            None
-        };
-
         let model = AutoBeleuchtungModel {
+            sensor_verfuegbar: false,
             aufhellung_aktiv: aufhellung,
             abdunklung_aktiv: abdunklung,
             aufhellung_schwelle,
             abdunklung_schwelle,
-            loop_tx,
+            loop_tx: None,
             aktuelle_lux: None,
         };
 
         let widgets = view_output!();
+
+        sender.command(move |out, shutdown| {
+            shutdown
+                .register(async move {
+                    let verfuegbar = sensor_proxy_verfuegbar().await;
+                    out.emit(AutoBeleuchtungCommandOutput::SensorGeprueft(verfuegbar));
+                })
+                .drop_on_shutdown()
+        });
+
         ComponentParts { model, widgets }
     }
 
@@ -225,6 +243,18 @@ impl Component for AutoBeleuchtungModel {
         _root: &Self::Root,
     ) {
         match msg {
+            AutoBeleuchtungCommandOutput::SensorGeprueft(verfuegbar) => {
+                self.sensor_verfuegbar = verfuegbar;
+                if verfuegbar && (self.aufhellung_aktiv || self.abdunklung_aktiv) {
+                    self.loop_tx = Some(start_sensor_loop(
+                        self.aufhellung_aktiv,
+                        self.aufhellung_schwelle,
+                        self.abdunklung_aktiv,
+                        self.abdunklung_schwelle,
+                        &sender,
+                    ));
+                }
+            }
             AutoBeleuchtungCommandOutput::Fehler(e) => {
                 let _ = sender.output(e);
             }
@@ -258,6 +288,18 @@ impl AutoBeleuchtungModel {
             self.aktuelle_lux = None;
         }
     }
+}
+
+async fn sensor_proxy_verfuegbar() -> bool {
+    let conn = match zbus::Connection::system().await {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    let proxy = match SensorProxyProxy::new(&conn).await {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+    proxy.has_ambient_light().await.is_ok()
 }
 
 async fn kbd_helligkeit_setzen(wert: i32) -> bool {

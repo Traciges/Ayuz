@@ -36,7 +36,6 @@ pub struct SoundModesModel {
     aktuelles_profil: u32,
     vorheriges_profil: u32,
     dropdown: gtk::DropDown,
-    beschreibung: String,
 }
 
 #[derive(Debug)]
@@ -65,13 +64,27 @@ impl Component for SoundModesModel {
     view! {
         adw::PreferencesGroup {
             set_title: &t!("audio_profiles_title"),
-            #[watch]
-            set_description: Some(model.beschreibung.as_str()),
+            set_description: Some(&t!("audio_profiles_desc")),
+
+            add = &gtk::Label {
+                #[watch]
+                set_visible: !model.ee_installiert,
+                set_label: &t!("ee_missing_warning"),
+                add_css_class: "error",
+                set_wrap: true,
+                set_xalign: 0.0,
+                set_margin_top: 8,
+                set_margin_start: 12,
+                set_margin_end: 12,
+                set_margin_bottom: 4,
+            },
 
             add = &adw::ActionRow {
                 set_title: &t!("audio_profile_label"),
                 add_suffix = &model.dropdown.clone(),
                 set_activatable_widget: Some(&model.dropdown),
+                #[watch]
+                set_sensitive: model.ee_installiert,
             },
         }
     }
@@ -109,7 +122,6 @@ impl Component for SoundModesModel {
             aktuelles_profil: config.audio_profil,
             vorheriges_profil: config.audio_profil,
             dropdown,
-            beschreibung: t!("audio_profiles_desc").to_string(),
         };
 
         let widgets = view_output!();
@@ -249,12 +261,6 @@ impl Component for SoundModesModel {
         match msg {
             AudioCommandOutput::EeGeprueft(installiert) => {
                 self.ee_installiert = installiert;
-                self.dropdown.set_sensitive(installiert);
-                self.beschreibung = if installiert {
-                    t!("audio_profiles_desc").to_string()
-                } else {
-                    t!("ee_missing_warning").to_string()
-                };
             }
             AudioCommandOutput::PresetsInstalliert => {}
             AudioCommandOutput::ProfilGesetzt(idx) => {

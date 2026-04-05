@@ -86,6 +86,7 @@ backlight_sensor_read_error: "LightLevel lesen fehlgeschlagen: %{error}"
 error_dbus_connection: "D-Bus Verbindung fehlgeschlagen: %{error}"
 error_sensor_proxy: "SensorProxy fehlgeschlagen: %{error}"
 error_claim_light: "claim_light fehlgeschlagen: %{error}"
+backlight_sensor_missing_warning: "iio-sensor-proxy ist nicht verfügbar. Automatische Helligkeit kann nicht verwendet werden."
 
 # backlight (Ruhezustand)
 sleep_group_title: "Ruhezustand der Tastaturhintergrundbeleuchtung"

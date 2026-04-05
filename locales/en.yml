@@ -86,6 +86,7 @@ backlight_sensor_read_error: "Failed to read LightLevel: %{error}"
 error_dbus_connection: "D-Bus connection failed: %{error}"
 error_sensor_proxy: "SensorProxy failed: %{error}"
 error_claim_light: "claim_light failed: %{error}"
+backlight_sensor_missing_warning: "iio-sensor-proxy is not available. Automatic brightness cannot be used."
 
 # backlight (Ruhezustand / sleep mode)
 sleep_group_title: "Keyboard Backlight Idle Mode"
