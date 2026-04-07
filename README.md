@@ -16,19 +16,15 @@
 
 ## Screenshots
 
-<p align="center">
-  <img src="screenshots/Display.png" alt="Display settings" width="45%"/>
-  &nbsp;
-  <img src="screenshots/Keyboard.png" alt="Keyboard settings" width="45%"/>
-</p>
-<p align="center">
-  <img src="screenshots/Audio.png" alt="Audio settings" width="45%"/>
-  &nbsp;
-  <img src="screenshots/Touchpad.png" alt="Touchpad settings" width="45%"/>
-</p>
-<p align="center">
-  <img src="screenshots/System.png" alt="System settings" width="45%"/>
-</p>
+<table align="center"><tr>
+  <td align="center"><img src="screenshots/Display.png" alt="Display settings" width="100%"/><br/><em>Display Settings</em></td>
+  <td align="center"><img src="screenshots/Keyboard.png" alt="Keyboard settings" width="100%"/><br/><em>Keyboard Settings</em></td>
+</tr><tr>
+  <td align="center"><img src="screenshots/Audio.png" alt="Audio settings" width="100%"/><br/><em>Audio Settings</em></td>
+  <td align="center"><img src="screenshots/Touchpad.png" alt="Touchpad settings" width="100%"/><br/><em>Touchpad Settings</em></td>
+</tr><tr>
+  <td align="center" colspan="2"><img src="screenshots/System.png" alt="System settings" width="50%"/><br/><em>System Settings</em></td>
+</tr></table>
 
 ---
 
