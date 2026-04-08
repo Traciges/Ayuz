@@ -55,6 +55,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.0.1" date="2026-04-08">
+      <description>
+        <p>Bug fix release. Fixed autostart not working on KDE Plasma.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-04-07">
       <description>
         <p>Initial release of Asus Hub for Linux.</p>
