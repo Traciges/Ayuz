@@ -69,7 +69,7 @@ impl Component for FnKeyModel {
 
         check_normal.set_group(Some(&check_locked));
 
-        let locked = AppConfig::load().input_fn_key_gesperrt;
+        let locked = AppConfig::load().input_fn_key_locked;
         if locked {
             check_locked.set_active(true);
         } else {
@@ -168,7 +168,7 @@ impl Component for FnKeyModel {
     ) {
         match msg {
             FnKeyCommandOutput::Set(locked) => {
-                AppConfig::update(|c| c.input_fn_key_gesperrt = locked);
+                AppConfig::update(|c| c.input_fn_key_locked = locked);
                 let mode = if locked {
                     t!("fn_key_mode_locked")
                 } else {

@@ -45,7 +45,7 @@ fn main() {
     rust_i18n::set_locale(&config.language);
 
     // GTK4 parses all CLI arguments internally and aborts with "Unknown option"
-    // for any flag it doesn't recognize — before our Rust code gets to handle it.
+    // for any flag it doesn't recognize - before our Rust code gets to handle it.
     // We read --hidden ourselves first, then strip it from the args before passing
     // them to GTK via .with_args().
     let args: Vec<String> = std::env::args().collect();

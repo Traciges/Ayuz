@@ -192,10 +192,10 @@ impl Component for AutoBeleuchtungModel {
 
         let model = AutoBeleuchtungModel {
             sensor_available: false,
-            auto_brighten: config.kbd_aufhellung_aktiv,
-            auto_dim: config.kbd_abdunklung_aktiv,
-            brighten_threshold: config.kbd_aufhellung_schwelle,
-            dim_threshold: config.kbd_abdunklung_schwelle,
+            auto_brighten: config.kbd_brighten_active,
+            auto_dim: config.kbd_dim_active,
+            brighten_threshold: config.kbd_brighten_threshold,
+            dim_threshold: config.kbd_dim_threshold,
             loop_tx: None,
             current_lux: None,
         };
@@ -223,25 +223,25 @@ impl Component for AutoBeleuchtungModel {
         match msg {
             AutoBeleuchtungMsg::ToggleAutoBrighten(active) => {
                 self.auto_brighten = active;
-                AppConfig::update(|c| c.kbd_aufhellung_aktiv = active);
+                AppConfig::update(|c| c.kbd_brighten_active = active);
                 self.update_sensor_loop(sender);
             }
             AutoBeleuchtungMsg::ToggleAutoDim(active) => {
                 self.auto_dim = active;
-                AppConfig::update(|c| c.kbd_abdunklung_aktiv = active);
+                AppConfig::update(|c| c.kbd_dim_active = active);
                 self.update_sensor_loop(sender);
             }
             AutoBeleuchtungMsg::BrightenThresholdChanged(value) => {
                 if (value - self.brighten_threshold).abs() > f64::EPSILON {
                     self.brighten_threshold = value;
-                    AppConfig::update(|c| c.kbd_aufhellung_schwelle = value);
+                    AppConfig::update(|c| c.kbd_brighten_threshold = value);
                     self.update_sensor_loop(sender);
                 }
             }
             AutoBeleuchtungMsg::DimThresholdChanged(value) => {
                 if (value - self.dim_threshold).abs() > f64::EPSILON {
                     self.dim_threshold = value;
-                    AppConfig::update(|c| c.kbd_abdunklung_schwelle = value);
+                    AppConfig::update(|c| c.kbd_dim_threshold = value);
                     self.update_sensor_loop(sender);
                 }
             }
@@ -361,7 +361,7 @@ async fn light_sensor_logic(
 /// Spawns a background task that monitors the ambient light sensor and adjusts the keyboard
 /// backlight in response to lux changes.
 ///
-/// A 3-lux hysteresis is applied — changes smaller than 3 lux are ignored to avoid
+/// A 3-lux hysteresis is applied - changes smaller than 3 lux are ignored to avoid
 /// flickering from sensor noise. The task shuts down when `false` is sent on the returned
 /// [`watch::Sender`].
 fn start_sensor_loop(

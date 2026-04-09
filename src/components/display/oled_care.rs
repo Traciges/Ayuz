@@ -115,7 +115,7 @@ impl Component for OledCareModel {
         let model = OledCareModel {
             pixel_refresh_active: config.oled_care_pixel_refresh,
             panel_autohide_active: config.oled_care_panel_autohide,
-            transparency_active: config.oled_care_transparenz,
+            transparency_active: config.oled_care_transparency,
         };
         let widgets = view_output!();
         ComponentParts { model, widgets }
@@ -187,7 +187,7 @@ impl Component for OledCareModel {
                 }
                 self.transparency_active = active;
 
-                AppConfig::update(|c| c.oled_care_transparenz = active);
+                AppConfig::update(|c| c.oled_care_transparency = active);
 
                 let opacity = if active { "transparent" } else { "opaque" };
                 let script = format!("panels().forEach(function(p){{p.opacity='{}';}})", opacity);

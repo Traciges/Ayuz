@@ -99,7 +99,7 @@ impl Component for GesturenModel {
         _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let active = AppConfig::load().input_gesten_aktiv;
+        let active = AppConfig::load().input_gestures_active;
         let loop_tx = if active {
             Some(start_gesture_loop())
         } else {
@@ -123,7 +123,7 @@ impl Component for GesturenModel {
                     return;
                 }
                 self.active = active;
-                AppConfig::update(|c| c.input_gesten_aktiv = active);
+                AppConfig::update(|c| c.input_gestures_active = active);
 
                 if active {
                     self.loop_tx = Some(start_gesture_loop());

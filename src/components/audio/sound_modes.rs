@@ -123,7 +123,7 @@ impl Component for SoundModesModel {
         ]);
         let dropdown = gtk::DropDown::new(Some(options), gtk::Expression::NONE);
         dropdown.set_valign(gtk::Align::Center);
-        dropdown.set_selected(config.audio_profil);
+        dropdown.set_selected(config.audio_profile);
 
         {
             let sender = sender.clone();
@@ -134,8 +134,8 @@ impl Component for SoundModesModel {
 
         let model = SoundModesModel {
             ee_installed: false,
-            current_profile: config.audio_profil,
-            previous_profile: config.audio_profil,
+            current_profile: config.audio_profile,
+            previous_profile: config.audio_profile,
             dropdown,
         };
 
@@ -216,7 +216,7 @@ impl Component for SoundModesModel {
 
                 self.previous_profile = self.current_profile;
                 self.current_profile = idx;
-                AppConfig::update(|c| c.audio_profil = idx);
+                AppConfig::update(|c| c.audio_profile = idx);
 
                 sender.command(move |out, shutdown| {
                     shutdown
@@ -238,7 +238,7 @@ impl Component for SoundModesModel {
                 }
 
                 AppConfig::update(|c| {
-                    c.audio_profil = CUSTOM_IDX;
+                    c.audio_profile = CUSTOM_IDX;
                 });
 
                 sender.command(move |out, shutdown| {
@@ -256,7 +256,7 @@ impl Component for SoundModesModel {
             AudioMsg::CustomCancelled(previous) => {
                 self.current_profile = previous;
                 self.dropdown.set_selected(previous);
-                AppConfig::update(|c| c.audio_profil = previous);
+                AppConfig::update(|c| c.audio_profile = previous);
             }
         }
     }

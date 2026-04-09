@@ -137,7 +137,7 @@ impl Component for BacklightIdleModel {
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let config = AppConfig::load();
-        let mode = TimeoutMode::from(config.kbd_timeout_modus);
+        let mode = TimeoutMode::from(config.kbd_timeout_mode);
 
         let check_never = gtk::CheckButton::new();
         let check_battery_and_ac = gtk::CheckButton::new();
@@ -158,8 +158,8 @@ impl Component for BacklightIdleModel {
         let dropdown_battery_and_ac =
             gtk::DropDown::new(Some(time_options.clone()), gtk::Expression::NONE);
         let dropdown_battery_only = gtk::DropDown::new(Some(time_options), gtk::Expression::NONE);
-        dropdown_battery_and_ac.set_selected(config.kbd_timeout_akku_netz_index);
-        dropdown_battery_only.set_selected(config.kbd_timeout_nur_akku_index);
+        dropdown_battery_and_ac.set_selected(config.kbd_timeout_battery_ac_index);
+        dropdown_battery_only.set_selected(config.kbd_timeout_battery_only_index);
 
         for (btn, mode_val) in [
             (&check_never, TimeoutMode::Never),
@@ -206,17 +206,17 @@ impl Component for BacklightIdleModel {
         match msg {
             BacklightIdleMsg::ChangeMode(mode) => {
                 self.timeout_mode = mode;
-                AppConfig::update(|c| c.kbd_timeout_modus = mode as u32);
+                AppConfig::update(|c| c.kbd_timeout_mode = mode as u32);
                 self.apply_timeout(mode, &sender);
             }
             BacklightIdleMsg::BatteryAndAcTimeChanged(index) => {
-                AppConfig::update(|c| c.kbd_timeout_akku_netz_index = index);
+                AppConfig::update(|c| c.kbd_timeout_battery_ac_index = index);
                 if self.timeout_mode == TimeoutMode::BatteryAndAc {
                     self.apply_timeout(TimeoutMode::BatteryAndAc, &sender);
                 }
             }
             BacklightIdleMsg::BatteryOnlyTimeChanged(index) => {
-                AppConfig::update(|c| c.kbd_timeout_nur_akku_index = index);
+                AppConfig::update(|c| c.kbd_timeout_battery_only_index = index);
                 if self.timeout_mode == TimeoutMode::BatteryOnly {
                     self.apply_timeout(TimeoutMode::BatteryOnly, &sender);
                 }

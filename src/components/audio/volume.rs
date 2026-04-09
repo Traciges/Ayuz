@@ -31,7 +31,7 @@ pub enum VolumeMsg {
 }
 
 // SimpleComponent is intentional here: volume control needs no async CommandOutput or
-// error forwarding to the parent — it handles all async work via tokio::spawn internally.
+// error forwarding to the parent - it handles all async work via tokio::spawn internally.
 #[relm4::component(pub)]
 impl SimpleComponent for VolumeModel {
     type Init = ();

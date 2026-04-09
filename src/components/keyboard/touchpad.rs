@@ -109,7 +109,7 @@ impl Component for TouchpadModel {
         _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let touchpad_active = AppConfig::load().touchpad_aktiv;
+        let touchpad_active = AppConfig::load().touchpad_active;
         let model = TouchpadModel {
             touchpad_active,
             countdown: 10,
@@ -148,7 +148,7 @@ impl Component for TouchpadModel {
                     self.confirmation_required = false;
                 }
 
-                AppConfig::update(|c| c.touchpad_aktiv = active);
+                AppConfig::update(|c| c.touchpad_active = active);
 
                 sender.command(move |out, shutdown| {
                     shutdown
@@ -187,7 +187,7 @@ impl Component for TouchpadModel {
                 self.confirmation_required = false;
                 self.timer_handle = None;
 
-                AppConfig::update(|c| c.touchpad_aktiv = true);
+                AppConfig::update(|c| c.touchpad_active = true);
 
                 sender.command(move |out, shutdown| {
                     shutdown

@@ -27,7 +27,7 @@ const STEP_THRESHOLD: i32 = 300;
 enum GestureState {
     /// No finger is currently touching the pad.
     Idle,
-    /// Finger down — waiting for the first X and Y position to classify the gesture.
+    /// Finger down - waiting for the first X and Y position to classify the gesture.
     Classifying { x: Option<i32>, y: Option<i32> },
     /// Touch started in the left edge zone; tracks volume via vertical movement.
     LeftEdge { last_y: i32 },
@@ -35,7 +35,7 @@ enum GestureState {
     RightEdge { last_y: i32 },
     /// Touch started in the top edge zone; triggers media prev/next on horizontal movement.
     TopEdge { start_x: i32, done: bool },
-    /// Touch started outside any edge zone — no action will be taken.
+    /// Touch started outside any edge zone - no action will be taken.
     Other,
 }
 
@@ -82,7 +82,7 @@ fn find_touchpad() -> Option<Device> {
 
 /// Spawns an external program asynchronously to perform a gesture action.
 ///
-/// Failures are logged as warnings but do not propagate — this is a fire-and-forget call.
+/// Failures are logged as warnings but do not propagate - this is a fire-and-forget call.
 async fn run_action(program: &str, args: &[&str]) {
     let result = tokio::process::Command::new(program)
         .args(args)

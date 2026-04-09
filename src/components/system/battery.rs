@@ -227,7 +227,7 @@ impl Component for BatteryModel {
                     return;
                 }
                 self.deep_sleep_active = active;
-                AppConfig::update(|c| c.battery_tiefschlaf_aktiv = active);
+                AppConfig::update(|c| c.battery_deep_sleep_active = active);
                 let value = if active { "deep" } else { "s2idle" };
                 sender.command(move |out, shutdown| {
                     shutdown

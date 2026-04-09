@@ -99,7 +99,7 @@ impl Component for ColorGamutModel {
         let gamut_list = gtk::StringList::new(&[&native, "sRGB", "DCI-P3", "Display P3"]);
 
         let model = ColorGamutModel {
-            color_gamut_index: config.farbskala_index,
+            color_gamut_index: config.color_profile_index,
             icm_base_path: None,
         };
 
@@ -126,7 +126,7 @@ impl Component for ColorGamutModel {
                     return;
                 }
                 self.color_gamut_index = index;
-                AppConfig::update(|c| c.farbskala_index = index);
+                AppConfig::update(|c| c.color_profile_index = index);
 
                 if let Some(base) = self.icm_base_path.clone() {
                     apply_profile(index, base, &sender);

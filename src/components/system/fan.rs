@@ -120,7 +120,7 @@ impl Component for FanModel {
         check_quiet.set_group(Some(&check_performance));
 
         let config = AppConfig::load();
-        let saved_profile = FanProfile::from(config.fan_profil);
+        let saved_profile = FanProfile::from(config.fan_profile);
         match saved_profile {
             FanProfile::Performance => check_performance.set_active(true),
             FanProfile::Balanced => check_balanced.set_active(true),
@@ -186,7 +186,7 @@ impl Component for FanModel {
                     return;
                 }
                 self.current_profile = profile;
-                AppConfig::update(|c| c.fan_profil = profile as u32);
+                AppConfig::update(|c| c.fan_profile = profile as u32);
 
                 sender.command(move |out, shutdown| {
                     shutdown

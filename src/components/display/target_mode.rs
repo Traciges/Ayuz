@@ -90,13 +90,13 @@ impl Component for TargetModeModel {
         let kde_available = is_kde_desktop();
 
         let model = TargetModeModel {
-            active: config.zielmodus_aktiv,
+            active: config.target_mode_active,
             kde_available,
         };
         let widgets = view_output!();
 
         if kde_available {
-            let fallback = config.zielmodus_aktiv;
+            let fallback = config.target_mode_active;
             sender.command(move |out, shutdown| {
                 shutdown
                     .register(async move {
@@ -123,7 +123,7 @@ impl Component for TargetModeModel {
                     return;
                 }
                 self.active = active;
-                AppConfig::update(|c| c.zielmodus_aktiv = active);
+                AppConfig::update(|c| c.target_mode_active = active);
 
                 sender.command(move |out, shutdown| {
                     shutdown
@@ -148,7 +148,7 @@ impl Component for TargetModeModel {
         match msg {
             TargetModeCommandOutput::ActiveRead(active) => {
                 self.active = active;
-                AppConfig::update(|c| c.zielmodus_aktiv = active);
+                AppConfig::update(|c| c.target_mode_active = active);
             }
             TargetModeCommandOutput::ActiveSet(active) => {
                 tracing::info!("{}", t!("zielmodus_aktiv_set", value = active.to_string()));

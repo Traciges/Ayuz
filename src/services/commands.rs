@@ -57,23 +57,30 @@ static QDBUS_PATH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
 /// Returns the path to the `qdbus` executable, resolved once and cached.
 ///
-/// Checks in order: `qdbus` in `$PATH`, `/usr/lib/qt6/bin/qdbus` (Arch Linux Qt6),
-/// `/usr/lib/qt5/bin/qdbus` (Arch Linux Qt5). Falls back to `"qdbus"` if none are found.
+/// Searches `$PATH` for `qdbus`, `qdbus6`, and `qdbus-qt6` in order, then falls back to a
+/// set of known fixed locations (Fedora `/usr/bin/qdbus6`, Arch Qt6/Qt5 lib paths).
+/// Returns the bare string `"qdbus"` as a last resort if nothing is found.
 pub(crate) fn resolve_qdbus_path() -> &'static str {
     QDBUS_PATH.get_or_init(|| {
         if let Ok(path_var) = std::env::var("PATH") {
             for dir in path_var.split(':') {
-                let candidate = std::path::Path::new(dir).join("qdbus");
-                if is_executable(&candidate) {
-                    return candidate.to_string_lossy().into_owned();
+                for name in ["qdbus", "qdbus6", "qdbus-qt6"] {
+                    let candidate = std::path::Path::new(dir).join(name);
+                    if is_executable(&candidate) {
+                        return candidate.to_string_lossy().into_owned();
+                    }
                 }
             }
         }
-        if is_executable(std::path::Path::new("/usr/lib/qt6/bin/qdbus")) {
-            return "/usr/lib/qt6/bin/qdbus".to_owned();
-        }
-        if is_executable(std::path::Path::new("/usr/lib/qt5/bin/qdbus")) {
-            return "/usr/lib/qt5/bin/qdbus".to_owned();
+        for fixed in [
+            "/usr/bin/qdbus6",
+            "/usr/lib/qt6/bin/qdbus6",
+            "/usr/lib/qt6/bin/qdbus",
+            "/usr/lib/qt5/bin/qdbus",
+        ] {
+            if is_executable(std::path::Path::new(fixed)) {
+                return fixed.to_owned();
+            }
         }
         "qdbus".to_owned()
     })
