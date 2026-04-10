@@ -102,6 +102,7 @@ The application is smart about availability: if a required tool or desktop envir
 | Full Charge | Charge to 100% with automatic revert to maintenance mode after 24 hours | `asusd` |
 | Deep Sleep | Switch between `s2idle` and `deep` suspend modes | - |
 | Fan Profiles | Switch between Performance, Balanced, and Quiet fan curves | `asusd` |
+| GPU Mode | Switch between GPU modes: Hybrid, Integrated, Nvidia (No Modeset), VFIO, ASUS eGPU, and ASUS MUX Discrete. Switching GPU modes requires a full system reboot. | `supergfxctl` |
 
 ### General
 
@@ -122,6 +123,7 @@ Asus Hub integrates with several external tools and system services. Install onl
 |------------|---------|-----------------|
 | [`asusctl`](https://gitlab.com/asus-linux/asusctl) | Battery care, fan profiles, FN key mode | `asusctl` (copr) |
 | `asusd` | System daemon required by asusctl | bundled with `asusctl` |
+| [`supergfxctl`](https://gitlab.com/asus-linux/supergfxctl) | GPU mode switching (Hybrid, Integrated, Nvidia, VFIO, eGPU, MUX) | `supergfxctl` (copr) |
 | [`easyeffects`](https://github.com/wwmm/easyeffects) | Audio sound profiles | `easyeffects` |
 | `kscreen-doctor` | OLED flicker-free dimming | `kscreen` |
 | `iio-sensor-proxy` | Ambient light sensor for auto backlight | `iio-sensor-proxy` |
