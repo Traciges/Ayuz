@@ -21,13 +21,14 @@ use relm4::prelude::*;
 use rust_i18n::t;
 
 use super::helpers::run_qdbus;
-use crate::services::commands::run_command_blocking;
+use crate::services::commands::{is_kde_desktop, run_command_blocking};
 use crate::services::config::AppConfig;
 
 pub struct OledCareModel {
     pixel_refresh_active: bool,
     panel_autohide_active: bool,
     transparency_active: bool,
+    kde_available: bool,
 }
 
 #[derive(Debug)]
@@ -74,6 +75,8 @@ impl Component for OledCareModel {
 
                 #[watch]
                 set_active: model.pixel_refresh_active,
+                #[watch]
+                set_sensitive: model.kde_available,
 
                 connect_active_notify[sender] => move |switch| {
                     sender.input(OledCareMsg::TogglePixelRefresh(switch.is_active()));
@@ -86,6 +89,8 @@ impl Component for OledCareModel {
 
                 #[watch]
                 set_active: model.panel_autohide_active,
+                #[watch]
+                set_sensitive: model.kde_available,
 
                 connect_active_notify[sender] => move |switch| {
                     sender.input(OledCareMsg::TogglePanelAutohide(switch.is_active()));
@@ -98,6 +103,8 @@ impl Component for OledCareModel {
 
                 #[watch]
                 set_active: model.transparency_active,
+                #[watch]
+                set_sensitive: model.kde_available,
 
                 connect_active_notify[sender] => move |switch| {
                     sender.input(OledCareMsg::ToggleTransparency(switch.is_active()));
@@ -116,6 +123,7 @@ impl Component for OledCareModel {
             pixel_refresh_active: config.oled_care_pixel_refresh,
             panel_autohide_active: config.oled_care_panel_autohide,
             transparency_active: config.oled_care_transparency,
+            kde_available: is_kde_desktop(),
         };
         let widgets = view_output!();
         ComponentParts { model, widgets }

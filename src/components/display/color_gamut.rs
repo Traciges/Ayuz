@@ -23,7 +23,7 @@ use relm4::prelude::*;
 use rust_i18n::t;
 
 use super::helpers::{apply_icm_profile, reset_icm_profile, setup_icm_profiles};
-use crate::services::config::AppConfig;
+use crate::services::{commands::is_kde_desktop, config::AppConfig};
 
 fn filename_for_index(index: u32) -> Option<&'static str> {
     match index {
@@ -37,6 +37,7 @@ fn filename_for_index(index: u32) -> Option<&'static str> {
 pub struct ColorGamutModel {
     color_gamut_index: u32,
     icm_base_path: Option<PathBuf>,
+    kde_available: bool,
 }
 
 impl ColorGamutModel {
@@ -76,6 +77,10 @@ impl Component for ColorGamutModel {
 
             add = &adw::ComboRow {
                 set_title: &t!("color_gamut_title"),
+                
+                #[watch]
+                set_sensitive: model.kde_available,
+                
                 #[watch]
                 set_subtitle: &model.color_gamut_description(),
                 set_model: Some(&gamut_list),
@@ -101,6 +106,7 @@ impl Component for ColorGamutModel {
         let model = ColorGamutModel {
             color_gamut_index: config.color_profile_index,
             icm_base_path: None,
+            kde_available: is_kde_desktop(),
         };
 
         let widgets = view_output!();
