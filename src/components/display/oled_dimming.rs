@@ -22,7 +22,7 @@ use relm4::prelude::*;
 use rust_i18n::t;
 
 use crate::components::display::helpers::DISPLAY_NAME;
-use crate::services::commands::run_command_blocking;
+use crate::services::commands::{is_kde_desktop, run_command_blocking};
 use crate::services::config::AppConfig;
 
 #[zbus::proxy(
@@ -37,6 +37,7 @@ trait BrightnessControl {
 
 pub struct OledDimmingModel {
     brightness: u32,
+    kde_available: bool,
 }
 
 #[derive(Debug)]
@@ -77,6 +78,9 @@ impl Component for OledDimmingModel {
             add = &adw::ActionRow {
                 set_title: &t!("oled_dimming_slider_title"),
 
+                #[watch]
+                set_sensitive: model.kde_available,
+
                 add_suffix = &gtk::Scale {
                     set_orientation: gtk::Orientation::Horizontal,
                     set_range: (10.0, 100.0),
@@ -107,7 +111,10 @@ impl Component for OledDimmingModel {
         let config = AppConfig::load();
         let brightness = config.oled_dc_dimming;
 
-        let model = OledDimmingModel { brightness };
+        let model = OledDimmingModel {
+            brightness,
+            kde_available: is_kde_desktop(),
+        };
         let widgets = view_output!();
 
         if brightness < 100 {
