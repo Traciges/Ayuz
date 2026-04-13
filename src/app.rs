@@ -266,7 +266,7 @@ impl SimpleComponent for AppModel {
         let lang_row = adw::ActionRow::new();
         lang_row.set_title(&t!("language_title"));
 
-        const SUPPORTED_LANGS: &[(&str, &str)] = &[("English", "en"), ("Deutsch", "de")];
+        const SUPPORTED_LANGS: &[(&str, &str)] = &[("English", "en"), ("Deutsch", "de"), ("Português Brasileiro", "pt-br")];
 
         let display_names: Vec<&str> = SUPPORTED_LANGS.iter().map(|(name, _)| *name).collect();
         let lang_dropdown = gtk4::DropDown::from_strings(&display_names);
