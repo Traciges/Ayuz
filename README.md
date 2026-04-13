@@ -218,18 +218,18 @@ Download the package matching your distribution from the [GitHub Releases](https
 
 - **Fedora / RPM-based:**
   ```bash
-  sudo dnf install ./asus-hub-1.0.3-1.x86_64.rpm
+  sudo dnf install ./asus-hub-1.0.4-1.x86_64.rpm
   ```
 
 - **Debian / Ubuntu / DEB-based:**
   ```bash
-  sudo apt install ./asus-hub_1.0.3-1_amd64.deb
+  sudo apt install ./asus-hub_1.0.4-1_amd64.deb
   ```
 
 - **AppImage (any distribution):**
   ```bash
-  chmod +x asus-hub-1.0.3-1.AppImage
-  ./asus-hub-1.0.3-1.AppImage
+  chmod +x asus-hub-1.0.4-1.AppImage
+  ./asus-hub-1.0.4-1.AppImage
   ```
 
 ### Uninstall
@@ -265,7 +265,7 @@ Requires [`appimagetool`](https://github.com/AppImage/AppImageKit/releases) on y
 ```bash
 cargo install cargo-appimage
 cargo appimage
-./target/appimage/asus-hub-1.0.3-1.AppImage
+./target/appimage/asus-hub-1.0.4-1.AppImage
 ```
 
 ---
