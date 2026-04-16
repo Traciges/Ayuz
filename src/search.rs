@@ -20,6 +20,8 @@ use rust_i18n::t;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+const SCROLL_ANIMATION_DELAY_MS: u64 = 150;
+
 // (icon, i18n-key, stack-name)
 pub const NAV_ITEMS: [(&str, &str, &str); 6] = [
     ("go-home-symbolic", "tab_home", "home"),
@@ -417,7 +419,7 @@ pub fn setup(
 
                     if let Some(w) = target_widget.clone() {
                         gtk4::glib::timeout_add_local_once(
-                            std::time::Duration::from_millis(150),
+                            std::time::Duration::from_millis(SCROLL_ANIMATION_DELAY_MS),
                             move || scroll_to_widget(&w),
                         );
                     }

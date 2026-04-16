@@ -20,7 +20,8 @@ use relm4::adw::prelude::*;
 use relm4::prelude::*;
 use rust_i18n::t;
 
-use crate::services::commands::pkexec_read;
+use crate::services::commands::pkexec_write_sysfs;
+use crate::sys_paths::SYS_MEM_SLEEP;
 use crate::services::config::AppConfig;
 use crate::services::dbus;
 
@@ -183,7 +184,7 @@ impl Component for BatteryModel {
         sender.command(|out, shutdown| {
             shutdown
                 .register(async move {
-                    match tokio::fs::read_to_string("/sys/power/mem_sleep").await {
+                    match tokio::fs::read_to_string(SYS_MEM_SLEEP).await {
                         Ok(content) => {
                             let active = content.contains("[deep]");
                             let supported = content.contains("deep");
@@ -250,9 +251,7 @@ impl Component for BatteryModel {
                     shutdown
                         .register(async move {
                             let value = if active { "deep" } else { "s2idle" };
-                            let cmd = format!("echo {value} > /sys/power/mem_sleep");
-
-                            match pkexec_read(&cmd).await.map(|_| ()) {
+                            match pkexec_write_sysfs(SYS_MEM_SLEEP, value).await {
                                 Ok(()) => out.emit(BatteryCommandOutput::DeepSleepSet(active)),
                                 Err(e) => out.emit(BatteryCommandOutput::Error(e)),
                             }

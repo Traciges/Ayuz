@@ -45,15 +45,14 @@ pub(crate) async fn run_command_blocking(program: &str, args: &[&str]) -> Result
     }
 }
 
-/// Runs a shell command with elevated privileges and returns its stdout as a trimmed String.
+/// Reads a privileged file using `pkexec cat <path>` and returns its trimmed contents.
 ///
-/// Executes `pkexec sh -c <command>` and captures standard output.
+/// Accepts only `&'static str` paths to prevent dynamic injection.
 /// Returns `Err` on spawn failure, non-zero exit code, or task panic.
-pub(crate) async fn pkexec_read(command: &str) -> Result<String, String> {
-    let command = command.to_string();
+pub(crate) async fn pkexec_read_file(path: &'static str) -> Result<String, String> {
     let result = tokio::task::spawn_blocking(move || {
         std::process::Command::new("pkexec")
-            .args(["sh", "-c", &command])
+            .args(["cat", path])
             .output()
     })
     .await;
@@ -66,6 +65,40 @@ pub(crate) async fn pkexec_read(command: &str) -> Result<String, String> {
             "error_cmd_exit_code",
             cmd = "pkexec",
             code = out.status.code().unwrap_or(-1).to_string()
+        )
+        .to_string()),
+        Ok(Err(e)) => {
+            Err(t!("error_cmd_start", cmd = "pkexec", error = e.to_string()).to_string())
+        }
+        Err(e) => Err(t!("error_spawn_blocking", error = e.to_string()).to_string()),
+    }
+}
+
+/// Writes `value` to a sysfs `path` using `pkexec tee <path>`.
+///
+/// Both `path` and `value` are `&'static str` to prevent dynamic injection.
+/// Returns `Err` on spawn failure, non-zero exit code, or task panic.
+pub(crate) async fn pkexec_write_sysfs(path: &'static str, value: &'static str) -> Result<(), String> {
+    let result = tokio::task::spawn_blocking(move || {
+        use std::io::Write;
+        let mut child = std::process::Command::new("pkexec")
+            .args(["tee", path])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .spawn()?;
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(format!("{value}\n").as_bytes());
+        }
+        child.wait()
+    })
+    .await;
+
+    match result {
+        Ok(Ok(status)) if status.success() => Ok(()),
+        Ok(Ok(status)) => Err(t!(
+            "error_cmd_exit_code",
+            cmd = "pkexec",
+            code = status.code().unwrap_or(-1).to_string()
         )
         .to_string()),
         Ok(Err(e)) => {
@@ -115,20 +148,19 @@ fn is_executable(path: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Returns `true` if the current desktop session is KDE Plasma.
-///
-/// Checks the `XDG_CURRENT_DESKTOP` environment variable for the substring `"KDE"` (case-insensitive).
-pub(crate) fn is_kde_desktop() -> bool {
+fn desktop_is(name: &str) -> bool {
+    let name_upper = name.to_uppercase();
     std::env::var("XDG_CURRENT_DESKTOP")
-        .map(|v| v.to_uppercase().contains("KDE"))
+        .map(|v| v.to_uppercase().contains(&name_upper))
         .unwrap_or(false)
 }
 
+/// Returns `true` if the current desktop session is KDE Plasma.
+pub(crate) fn is_kde_desktop() -> bool {
+    desktop_is("KDE")
+}
+
 /// Returns `true` if the current desktop session is GNOME.
-///
-/// Checks the `XDG_CURRENT_DESKTOP` environment variable for the substring `"GNOME"` (case-insensitive).
 pub(crate) fn is_gnome_desktop() -> bool {
-    std::env::var("XDG_CURRENT_DESKTOP")
-        .map(|v| v.to_uppercase().contains("GNOME"))
-        .unwrap_or(false)
+    desktop_is("GNOME")
 }

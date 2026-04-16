@@ -19,6 +19,7 @@ mod autostart;
 mod components;
 mod search;
 mod services;
+mod sys_paths;
 mod tray;
 
 use gtk4::gdk;

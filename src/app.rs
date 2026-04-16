@@ -41,6 +41,39 @@ use relm4::prelude::*;
 use rust_i18n::t;
 use std::rc::Rc;
 
+macro_rules! launch_component {
+    ($type:ty, $sender:expr) => {
+        <$type>::builder()
+            .launch(())
+            .forward($sender.input_sender(), |msg: String| AppMsg::Error(msg))
+    };
+}
+
+#[derive(Clone, Copy)]
+enum AppPage {
+    Home,
+    Display,
+    Keyboard,
+    Touchpad,
+    Audio,
+    System,
+    Search,
+}
+
+impl AppPage {
+    fn as_str(self) -> &'static str {
+        match self {
+            AppPage::Home => "home",
+            AppPage::Display => "display",
+            AppPage::Keyboard => "keyboard",
+            AppPage::Touchpad => "touchpad",
+            AppPage::Audio => "audio",
+            AppPage::System => "system",
+            AppPage::Search => "search",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum AppMsg {
     ShowWindow,
@@ -134,55 +167,22 @@ impl SimpleComponent for AppModel {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let error_handler = |msg: String| AppMsg::Error(msg);
-        let home = HomeModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let apu_mem = ApuMemModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let battery = BatteryModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let fan = FanModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let gpu = GpuModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let oled_dimming = OledDimmingModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let target_mode = TargetModeModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let oled_care = OledCareModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let color_gamut = ColorGamutModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let fn_key = FnKeyModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let gestures = GesturesModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let touchpad = TouchpadModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let auto_backlight = AutoBacklightModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let backlight_idle = BacklightIdleModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let sound_modes = SoundModesModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
-        let volume_widget = VolumeModel::builder()
-            .launch(())
-            .forward(sender.input_sender(), error_handler);
+        let home = launch_component!(HomeModel, sender);
+        let apu_mem = launch_component!(ApuMemModel, sender);
+        let battery = launch_component!(BatteryModel, sender);
+        let fan = launch_component!(FanModel, sender);
+        let gpu = launch_component!(GpuModel, sender);
+        let oled_dimming = launch_component!(OledDimmingModel, sender);
+        let target_mode = launch_component!(TargetModeModel, sender);
+        let oled_care = launch_component!(OledCareModel, sender);
+        let color_gamut = launch_component!(ColorGamutModel, sender);
+        let fn_key = launch_component!(FnKeyModel, sender);
+        let gestures = launch_component!(GesturesModel, sender);
+        let touchpad = launch_component!(TouchpadModel, sender);
+        let auto_backlight = launch_component!(AutoBacklightModel, sender);
+        let backlight_idle = launch_component!(BacklightIdleModel, sender);
+        let sound_modes = launch_component!(SoundModesModel, sender);
+        let volume_widget = launch_component!(VolumeModel, sender);
 
         let tray_svc = ksni::TrayService::new(tray::AsusTray {
             app_sender: sender.input_sender().clone(),
@@ -366,13 +366,13 @@ impl SimpleComponent for AppModel {
         let content_stack = adw::ViewStack::new();
         content_stack.set_transition_duration(250);
         content_stack.set_enable_transitions(true);
-        content_stack.add_named(&home_scroll, Some("home"));
-        content_stack.add_named(&display_page, Some("display"));
-        content_stack.add_named(&keyboard_page, Some("keyboard"));
-        content_stack.add_named(&touchpad_page, Some("touchpad"));
-        content_stack.add_named(&audio_page, Some("audio"));
-        content_stack.add_named(&system_page, Some("system"));
-        content_stack.set_visible_child_name("home");
+        content_stack.add_named(&home_scroll, Some(AppPage::Home.as_str()));
+        content_stack.add_named(&display_page, Some(AppPage::Display.as_str()));
+        content_stack.add_named(&keyboard_page, Some(AppPage::Keyboard.as_str()));
+        content_stack.add_named(&touchpad_page, Some(AppPage::Touchpad.as_str()));
+        content_stack.add_named(&audio_page, Some(AppPage::Audio.as_str()));
+        content_stack.add_named(&system_page, Some(AppPage::System.as_str()));
+        content_stack.set_visible_child_name(AppPage::Home.as_str());
 
         let content_header = adw::HeaderBar::new();
         let content_toolbar = adw::ToolbarView::new();
@@ -443,7 +443,7 @@ impl SimpleComponent for AppModel {
             &sidebar_list,
             widget_map,
         );
-        content_stack.add_named(&search_widgets.scroll, Some("search"));
+        content_stack.add_named(&search_widgets.scroll, Some(AppPage::Search.as_str()));
 
         let sidebar_header = adw::HeaderBar::new();
         sidebar_header.pack_end(&search_widgets.toggle);
