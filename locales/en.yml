@@ -224,6 +224,18 @@ asusd_missing_warning: "asusctl (asusd) is not installed or not running. Fan and
 tray_show: "Show"
 tray_exit: "Quit"
 
+# migration
+migration_dialog_heading: "Import Legacy Settings"
+migration_dialog_body: "A configuration from the previous 'asus-hub' installation was found. Would you like to import it? This will overwrite your current settings."
+migration_dialog_yes: "Import"
+migration_dialog_no: "Skip"
+legacy_migration_group_title: "Legacy Import"
+legacy_migration_group_desc: "If you previously used asus-hub, you can manually import your old configuration here. This copies ~/.config/asus-hub/config.json into Ayuz and removes the legacy folder afterwards."
+legacy_migration_row_title: "Import Legacy Configuration"
+legacy_migration_row_subtitle_available: "Legacy configuration found — ready to import."
+legacy_migration_row_subtitle_unavailable: "No legacy configuration found."
+legacy_migration_button: "Import"
+
 # gpu
 gpu_group_title: "GPU Mode"
 gpu_group_desc: "Switch the active graphics mode. Requires supergfxctl."

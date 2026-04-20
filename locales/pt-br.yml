@@ -224,6 +224,18 @@ asusd_missing_warning: "Serviço asusctl não disponível."
 tray_show: "Mostrar"
 tray_exit: "Sair"
 
+# migration
+migration_dialog_heading: "Importar configurações anteriores"
+migration_dialog_body: "Foi encontrada uma configuração da instalação anterior do 'asus-hub'. Deseja importá-la? Isso substituirá suas configurações atuais."
+migration_dialog_yes: "Importar"
+migration_dialog_no: "Ignorar"
+legacy_migration_group_title: "Importação legada"
+legacy_migration_group_desc: "Se você usava o asus-hub anteriormente, pode importar manualmente sua configuração antiga aqui. O arquivo ~/.config/asus-hub/config.json será copiado para o Ayuz e a pasta legada será removida em seguida."
+legacy_migration_row_title: "Importar configuração legada"
+legacy_migration_row_subtitle_available: "Configuração legada encontrada — pronta para importar."
+legacy_migration_row_subtitle_unavailable: "Nenhuma configuração legada encontrada."
+legacy_migration_button: "Importar"
+
 # gpu
 gpu_group_title: "Modo de GPU"
 gpu_group_desc: "Altera o modo gráfico ativo. Requer supergfxctl."

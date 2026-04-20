@@ -129,6 +129,8 @@ pub struct AppConfig {
     // ── Global (non-profile) settings ────────────────────────────────────────
     #[serde(default = "default_language")]
     pub language: String,
+    #[serde(default)]
+    pub skip_legacy_migration: bool,
 
     // ── Profile management ───────────────────────────────────────────────────
     #[serde(default)]
@@ -189,6 +191,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             language: default_language(),
+            skip_legacy_migration: false,
             active_profile_id: String::new(),
             profiles: vec![],
             // legacy defaults

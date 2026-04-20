@@ -98,6 +98,9 @@ pub enum AppMsg {
     SetLanguage(String),
     ToggleAutostart(bool),
     ActivateProfile(String),
+    LegacyMigrationAccepted,
+    LegacyMigrationDeclined,
+    TriggerManualMigration,
 }
 
 pub struct AppModel {
@@ -147,7 +150,7 @@ impl SimpleComponent for AppModel {
         }
     }
 
-    fn update(&mut self, message: AppMsg, _sender: ComponentSender<Self>) {
+    fn update(&mut self, message: AppMsg, sender: ComponentSender<Self>) {
         match message {
             AppMsg::ShowWindow => {
                 if let Some(window) = self.window.upgrade() {
@@ -216,6 +219,46 @@ impl SimpleComponent for AppModel {
                 self.battery.sender().emit(BatteryMsg::LoadProfile(p.battery_deep_sleep_active));
                 self.gpu.sender().emit(GpuMsg::LoadProfile(p.gpu_mode));
                 self.apu_mem.sender().emit(ApuMemMsg::LoadProfile(p.apu_mem));
+            }
+            AppMsg::LegacyMigrationAccepted => {
+                match crate::services::migration::perform_migration() {
+                    Ok(()) => {}
+                    Err(e) => {
+                        let toast = adw::Toast::new(&e);
+                        toast.set_timeout(5);
+                        self.toast_overlay.add_toast(toast);
+                    }
+                }
+            }
+            AppMsg::LegacyMigrationDeclined => {
+                crate::services::config::AppConfig::update(|c| {
+                    c.skip_legacy_migration = true;
+                });
+            }
+            AppMsg::TriggerManualMigration => {
+                if !crate::services::migration::legacy_dir_exists() {
+                    return;
+                }
+                let migration_sender = sender.input_sender().clone();
+                let window_weak = self.window.clone();
+                gtk4::glib::spawn_future_local(async move {
+                    let dialog = adw::AlertDialog::builder()
+                        .heading(t!("migration_dialog_heading").as_ref())
+                        .body(t!("migration_dialog_body").as_ref())
+                        .build();
+                    dialog.add_response("no", &t!("migration_dialog_no"));
+                    dialog.add_response("yes", &t!("migration_dialog_yes"));
+                    dialog.set_default_response(Some("yes"));
+                    dialog.set_close_response("no");
+                    let response = dialog
+                        .choose_future(window_weak.upgrade().as_ref())
+                        .await;
+                    if &*response == "yes" {
+                        migration_sender.emit(AppMsg::LegacyMigrationAccepted);
+                    } else {
+                        migration_sender.emit(AppMsg::LegacyMigrationDeclined);
+                    }
+                });
             }
         }
     }
@@ -376,6 +419,34 @@ impl SimpleComponent for AppModel {
         lang_group.add(&autostart_row);
 
         system_page.add(&lang_group);
+
+        let legacy_available = crate::services::migration::legacy_dir_exists();
+
+        let legacy_group = adw::PreferencesGroup::new();
+        legacy_group.set_title(&t!("legacy_migration_group_title"));
+        legacy_group.set_description(Some(&t!("legacy_migration_group_desc")));
+
+        let legacy_row = adw::ActionRow::new();
+        legacy_row.set_title(&t!("legacy_migration_row_title"));
+        if legacy_available {
+            legacy_row.set_subtitle(&t!("legacy_migration_row_subtitle_available"));
+        } else {
+            legacy_row.set_subtitle(&t!("legacy_migration_row_subtitle_unavailable"));
+        }
+
+        let legacy_btn = gtk4::Button::with_label(&t!("legacy_migration_button"));
+        legacy_btn.add_css_class("suggested-action");
+        legacy_btn.set_valign(gtk4::Align::Center);
+        legacy_btn.set_sensitive(legacy_available);
+
+        let sender_migration = sender.clone();
+        legacy_btn.connect_clicked(move |_| {
+            sender_migration.input(AppMsg::TriggerManualMigration);
+        });
+
+        legacy_row.add_suffix(&legacy_btn);
+        legacy_group.add(&legacy_row);
+        system_page.add(&legacy_group);
 
         // Widget map for scroll-to-widget
 
@@ -583,6 +654,29 @@ impl SimpleComponent for AppModel {
             let win = root.clone();
             gtk4::glib::idle_add_local_once(move || {
                 win.set_visible(false);
+            });
+        }
+
+        if crate::services::migration::should_prompt() {
+            let migration_sender = sender.input_sender().clone();
+            let window_weak = root.downgrade();
+            gtk4::glib::spawn_future_local(async move {
+                let dialog = adw::AlertDialog::builder()
+                    .heading(t!("migration_dialog_heading").as_ref())
+                    .body(t!("migration_dialog_body").as_ref())
+                    .build();
+                dialog.add_response("no", &t!("migration_dialog_no"));
+                dialog.add_response("yes", &t!("migration_dialog_yes"));
+                dialog.set_default_response(Some("yes"));
+                dialog.set_close_response("no");
+                let response = dialog
+                    .choose_future(window_weak.upgrade().as_ref())
+                    .await;
+                if &*response == "yes" {
+                    migration_sender.emit(AppMsg::LegacyMigrationAccepted);
+                } else {
+                    migration_sender.emit(AppMsg::LegacyMigrationDeclined);
+                }
             });
         }
 
