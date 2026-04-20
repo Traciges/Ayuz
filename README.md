@@ -103,6 +103,7 @@ The application is smart about availability: if a required tool or desktop envir
 
 ### General
 
+- **Profiles** - create and manage multiple named configuration profiles, each with a custom icon. Settings are automatically saved to the currently selected profile and instantly restored when switching
 - **Global search** - search across all settings with a keyboard shortcut
 - **System tray** - minimize to tray, restore or quit from tray menu
 - **Autostart** - optional autostart with the system; when enabled, the app launches hidden (`--hidden`) and only appears in the tray. Managed via a `.desktop` file at `~/.config/autostart/de.guido.asus-hub.desktop`
@@ -218,18 +219,18 @@ Download the package matching your distribution from the [GitHub Releases](https
 
 - **Fedora / RPM-based:**
   ```bash
-  sudo dnf install ./asus-hub-1.0.5-1.x86_64.rpm
+  sudo dnf install ./asus-hub-1.0.6-1.x86_64.rpm
   ```
 
 - **Debian / Ubuntu / DEB-based:**
   ```bash
-  sudo apt install ./asus-hub_1.0.5-1_amd64.deb
+  sudo apt install ./asus-hub_1.0.6-1_amd64.deb
   ```
 
 - **AppImage (any distribution):**
   ```bash
-  chmod +x asus-hub-1.0.5-1.AppImage
-  ./asus-hub-1.0.5-1.AppImage
+  chmod +x asus-hub-1.0.6-1.AppImage
+  ./asus-hub-1.0.6-1.AppImage
   ```
 
 ### Uninstall
@@ -265,7 +266,7 @@ Requires [`appimagetool`](https://github.com/AppImage/AppImageKit/releases) on y
 ```bash
 cargo install cargo-appimage
 cargo appimage
-./target/appimage/asus-hub-1.0.5-1.AppImage
+./target/appimage/asus-hub-1.0.6-1.AppImage
 ```
 
 ---

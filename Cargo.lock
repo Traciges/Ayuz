@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "asus-hub"
-version = "1.0.5"
+version = "1.0.6"
 dependencies = [
  "directories",
  "evdev",

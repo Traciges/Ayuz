@@ -64,6 +64,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.0.6" date="2026-04-20">
+      <description>
+        <p>Added profiles feature. Users can now create, rename, and delete configuration profiles. Settings are automatically saved to the currently active profile.</p>
+      </description>
+    </release>
     <release version="1.0.5" date="2026-04-14">
       <description>
         <p>Bug fix release. Fixed autostart not working on KDE Plasma.</p>
