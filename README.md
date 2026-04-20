@@ -15,7 +15,7 @@
 ---
 
 > [!WARNING]
-> **Disclaimer:** This is an unofficial, community-driven, open-source project. **"Asus Hub" is NOT affiliated with, endorsed by, sponsored by, or connected to ASUSTeK Computer Inc. in any way.** "ASUS", "Zenbook", "ROG", "Vivobook", and "MyAsus" are registered trademarks of ASUSTeK Computer Inc. <br>
+> **Disclaimer:** This is an unofficial, community-driven, open-source project. **"Ayuz" is NOT affiliated with, endorsed by, sponsored by, or connected to ASUSTeK Computer Inc. in any way.** "ASUS", "Zenbook", "ROG", "Vivobook", and "MyAsus" are registered trademarks of ASUSTeK Computer Inc. <br>
 The use of ASUS trademarks within this website and associated tools and libraries is only to provide a recognisable identifier to users to enable them to associate that these tools will work with ASUS laptops. <br>
 This software is provided as-is, without warranty, and uses community reverse-engineered backend tools. Use at your own risk.
 
@@ -114,8 +114,8 @@ The application is smart about availability: if a required tool or desktop envir
 - **Profiles** - create and manage multiple named configuration profiles, each with a custom icon. Settings are automatically saved to the currently selected profile and instantly restored when switching
 - **Global search** - search across all settings with a keyboard shortcut
 - **System tray** - minimize to tray, restore or quit from tray menu
-- **Autostart** - optional autostart with the system; when enabled, the app launches hidden (`--hidden`) and only appears in the tray. Managed via a `.desktop` file at `~/.config/autostart/de.guido.asus-hub.desktop`
-- **Persistent configuration** - settings are saved to `~/.config/asus-hub/config.json` and restored on every launch
+- **Autostart** - optional autostart with the system; when enabled, the app launches hidden (`--hidden`) and only appears in the tray. Managed via a `.desktop` file at `~/.config/autostart/de.guido.ayuz.desktop`
+- **Persistent configuration** - settings are saved to `~/.config/ayuz/config.json` and restored on every launch
 - **Multilingual UI** - English and German supported, switchable at runtime
 - **Toast notifications** - errors and status messages shown as non-blocking toasts
 
@@ -206,12 +206,12 @@ The application is available in the Arch User Repository. Install using your pre
 
 | Package        | Description                                              |
 | -------------- | -------------------------------------------------------- |
-| `asus-hub`     | Compiles the latest stable release from source           |
-| `asus-hub-bin` | Downloads and installs the pre-compiled binary (fastest) |
-| `asus-hub-git` | Compiles the latest commit from the main branch          |
+| `ayuz`     | Compiles the latest stable release from source           |
+| `ayuz-bin` | Downloads and installs the pre-compiled binary (fastest) |
+| `ayuz-git` | Compiles the latest commit from the main branch          |
 
 ```bash
-yay -S asus-hub-bin
+yay -S ayuz-bin
 ```
 
 **Fedora (Copr - Community Maintained):**
@@ -228,24 +228,24 @@ sudo systemctl enable --now supergfxd.service
 
 **Manual Download:**
 
-Download the package matching your distribution from the [GitHub Releases](https://github.com/Traciges/asus-hub/releases) page:
+Download the package matching your distribution from the [GitHub Releases](https://github.com/Traciges/ayuz/releases) page:
 
 - **Fedora / RPM-based:**
 
   ```bash
-  sudo dnf install ./asus-hub-1.0.6-1.x86_64.rpm
+  sudo dnf install ./ayuz-1.0.6-1.x86_64.rpm
   ```
 
 - **Debian / Ubuntu / DEB-based:**
 
   ```bash
-  sudo apt install ./asus-hub_1.0.6-1_amd64.deb
+  sudo apt install ./ayuz_1.0.6-1_amd64.deb
   ```
 
 - **AppImage (any distribution):**
   ```bash
-  chmod +x asus-hub-1.0.6-1.AppImage
-  ./asus-hub-1.0.6-1.AppImage
+  chmod +x ayuz-1.0.6-1.AppImage
+  ./ayuz-1.0.6-1.AppImage
   ```
 
 ### Uninstall
@@ -253,27 +253,27 @@ Download the package matching your distribution from the [GitHub Releases](https
 - **Fedora, CentOS oder RHEL (via RPM/DNF):**
 
   ```bash
-  sudo dnf remove asus-hub
+  sudo dnf remove ayuz
   ```
 
 - **Ubuntu, Debian oder Linux Mint (via DEB/APT):**
 
   ```bash
-  sudo apt remove asus-hub
+  sudo apt remove ayuz
   ```
 
 - **openSUSE (via RPM/Zypper):**
   ```bash
-  sudo zypper remove asus-hub
+  sudo zypper remove ayuz
   ```
 
 ### Build from source
 
 ```bash
-git clone https://github.com/Traciges/asus-hub
-cd asus-hub
+git clone https://github.com/Traciges/ayuz
+cd ayuz
 cargo build --release
-./target/release/asus-hub
+./target/release/ayuz
 ```
 
 ### Build an AppImage
@@ -283,7 +283,7 @@ Requires [`appimagetool`](https://github.com/AppImage/AppImageKit/releases) on y
 ```bash
 cargo install cargo-appimage
 cargo appimage
-./target/appimage/asus-hub-1.0.6-1.AppImage
+./target/appimage/ayuz-1.0.6-1.AppImage
 ```
 
 ---
