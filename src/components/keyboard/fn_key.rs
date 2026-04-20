@@ -25,6 +25,8 @@ use crate::services::config::AppConfig;
 
 pub struct FnKeyModel {
     locked: bool,
+    check_locked: gtk::CheckButton,
+    check_normal: gtk::CheckButton,
     row_hint: adw::ActionRow,
     row_locked: adw::ActionRow,
     row_normal: adw::ActionRow,
@@ -33,6 +35,7 @@ pub struct FnKeyModel {
 #[derive(Debug)]
 pub enum FnKeyMsg {
     ToggleLocked(bool),
+    LoadProfile(bool),
 }
 
 #[derive(Debug)]
@@ -69,7 +72,7 @@ impl Component for FnKeyModel {
 
         check_normal.set_group(Some(&check_locked));
 
-        let locked = AppConfig::load().input_fn_key_locked;
+        let locked = AppConfig::load().active_profile().input_fn_key_locked;
         if locked {
             check_locked.set_active(true);
         } else {
@@ -112,6 +115,8 @@ impl Component for FnKeyModel {
 
         let model = FnKeyModel {
             locked,
+            check_locked,
+            check_normal,
             row_hint,
             row_locked,
             row_normal,
@@ -124,6 +129,36 @@ impl Component for FnKeyModel {
 
     fn update(&mut self, msg: FnKeyMsg, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
+            FnKeyMsg::LoadProfile(locked) => {
+                self.locked = locked;
+                self.check_locked.set_active(locked);
+                self.check_normal.set_active(!locked);
+
+                let args_flag = format!(
+                    "--args=asus_wmi.fnlock_default={}",
+                    if locked { "0" } else { "1" }
+                );
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            let result = run_command_blocking(
+                                "pkexec",
+                                &[
+                                    "grubby",
+                                    "--update-kernel=ALL",
+                                    "--remove-args=asus_wmi.fnlock_default",
+                                    &args_flag,
+                                ],
+                            )
+                            .await;
+                            match result {
+                                Ok(()) => out.emit(FnKeyCommandOutput::Set(locked)),
+                                Err(e) => out.emit(FnKeyCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
             FnKeyMsg::ToggleLocked(locked) => {
                 if locked == self.locked {
                     return;
@@ -168,7 +203,7 @@ impl Component for FnKeyModel {
     ) {
         match msg {
             FnKeyCommandOutput::Set(locked) => {
-                AppConfig::update(|c| c.input_fn_key_locked = locked);
+                AppConfig::update(|c| c.active_profile_mut().input_fn_key_locked = locked);
                 let mode = if locked {
                     t!("fn_key_mode_locked")
                 } else {

@@ -54,6 +54,7 @@ impl ColorGamutModel {
 #[derive(Debug)]
 pub enum ColorGamutMsg {
     ChangeColorGamut(u32),
+    LoadProfile(u32),
 }
 
 #[derive(Debug)]
@@ -117,7 +118,7 @@ impl Component for ColorGamutModel {
         let gamut_list = gtk::StringList::new(&[&native, "sRGB", "DCI-P3", "Display P3"]);
 
         let model = ColorGamutModel {
-            color_gamut_index: config.color_profile_index,
+            color_gamut_index: config.active_profile().color_profile_index,
             icm_base_path: None,
             kde_available: is_kde_desktop(),
         };
@@ -145,12 +146,21 @@ impl Component for ColorGamutModel {
                     return;
                 }
                 self.color_gamut_index = index;
-                AppConfig::update(|c| c.color_profile_index = index);
+                AppConfig::update(|c| c.active_profile_mut().color_profile_index = index);
 
                 if let Some(base) = self.icm_base_path.clone() {
                     apply_profile(index, base, &sender);
                 } else {
                     tracing::warn!("{}", t!("color_gamut_icm_path_not_ready"));
+                }
+            }
+            ColorGamutMsg::LoadProfile(index) => {
+                if !self.kde_available {
+                    return;
+                }
+                self.color_gamut_index = index;
+                if let Some(base) = self.icm_base_path.clone() {
+                    apply_profile(index, base, &sender);
                 }
             }
         }

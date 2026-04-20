@@ -31,6 +31,7 @@ pub struct TargetModeModel {
 #[derive(Debug)]
 pub enum TargetModeMsg {
     SetActive(bool),
+    LoadProfile(bool),
 }
 
 #[derive(Debug)]
@@ -90,13 +91,13 @@ impl Component for TargetModeModel {
         let kde_available = is_kde_desktop();
 
         let model = TargetModeModel {
-            active: config.target_mode_active,
+            active: config.active_profile().target_mode_active,
             kde_available,
         };
         let widgets = view_output!();
 
         if kde_available {
-            let fallback = config.target_mode_active;
+            let fallback = config.active_profile().target_mode_active;
             sender.command(move |out, shutdown| {
                 shutdown
                     .register(async move {
@@ -123,8 +124,24 @@ impl Component for TargetModeModel {
                     return;
                 }
                 self.active = active;
-                AppConfig::update(|c| c.target_mode_active = active);
+                AppConfig::update(|c| c.active_profile_mut().target_mode_active = active);
 
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            match set_kwin_effect(active).await {
+                                Ok(()) => out.emit(TargetModeCommandOutput::ActiveSet(active)),
+                                Err(e) => out.emit(TargetModeCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
+            TargetModeMsg::LoadProfile(active) => {
+                if !self.kde_available {
+                    return;
+                }
+                self.active = active;
                 sender.command(move |out, shutdown| {
                     shutdown
                         .register(async move {
@@ -148,7 +165,7 @@ impl Component for TargetModeModel {
         match msg {
             TargetModeCommandOutput::ActiveRead(active) => {
                 self.active = active;
-                AppConfig::update(|c| c.target_mode_active = active);
+                AppConfig::update(|c| c.active_profile_mut().target_mode_active = active);
             }
             TargetModeCommandOutput::ActiveSet(active) => {
                 tracing::info!(

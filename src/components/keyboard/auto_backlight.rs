@@ -63,6 +63,12 @@ pub enum AutoBacklightMsg {
     ToggleAutoDim(bool),
     BrightenThresholdChanged(f64),
     DimThresholdChanged(f64),
+    LoadProfile {
+        brighten: bool,
+        dim: bool,
+        brighten_threshold: f64,
+        dim_threshold: f64,
+    },
 }
 
 #[derive(Debug)]
@@ -190,12 +196,13 @@ impl Component for AutoBacklightModel {
     ) -> ComponentParts<Self> {
         let config = AppConfig::load();
 
+        let profile = config.active_profile();
         let model = AutoBacklightModel {
             sensor_available: false,
-            auto_brighten: config.kbd_brighten_active,
-            auto_dim: config.kbd_dim_active,
-            brighten_threshold: config.kbd_brighten_threshold,
-            dim_threshold: config.kbd_dim_threshold,
+            auto_brighten: profile.kbd_brighten_active,
+            auto_dim: profile.kbd_dim_active,
+            brighten_threshold: profile.kbd_brighten_threshold,
+            dim_threshold: profile.kbd_dim_threshold,
             loop_tx: None,
             current_lux: None,
         };
@@ -218,25 +225,39 @@ impl Component for AutoBacklightModel {
         match msg {
             AutoBacklightMsg::ToggleAutoBrighten(active) => {
                 self.auto_brighten = active;
-                AppConfig::update(|c| c.kbd_brighten_active = active);
+                AppConfig::update(|c| c.active_profile_mut().kbd_brighten_active = active);
                 self.update_sensor_loop(sender);
             }
             AutoBacklightMsg::ToggleAutoDim(active) => {
                 self.auto_dim = active;
-                AppConfig::update(|c| c.kbd_dim_active = active);
+                AppConfig::update(|c| c.active_profile_mut().kbd_dim_active = active);
                 self.update_sensor_loop(sender);
             }
             AutoBacklightMsg::BrightenThresholdChanged(value) => {
                 if (value - self.brighten_threshold).abs() > f64::EPSILON {
                     self.brighten_threshold = value;
-                    AppConfig::update(|c| c.kbd_brighten_threshold = value);
+                    AppConfig::update(|c| c.active_profile_mut().kbd_brighten_threshold = value);
                     self.update_sensor_loop(sender);
                 }
             }
             AutoBacklightMsg::DimThresholdChanged(value) => {
                 if (value - self.dim_threshold).abs() > f64::EPSILON {
                     self.dim_threshold = value;
-                    AppConfig::update(|c| c.kbd_dim_threshold = value);
+                    AppConfig::update(|c| c.active_profile_mut().kbd_dim_threshold = value);
+                    self.update_sensor_loop(sender);
+                }
+            }
+            AutoBacklightMsg::LoadProfile {
+                brighten,
+                dim,
+                brighten_threshold,
+                dim_threshold,
+            } => {
+                self.auto_brighten = brighten;
+                self.auto_dim = dim;
+                self.brighten_threshold = brighten_threshold;
+                self.dim_threshold = dim_threshold;
+                if self.sensor_available {
                     self.update_sensor_loop(sender);
                 }
             }

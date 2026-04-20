@@ -44,6 +44,8 @@ pub enum TouchpadMsg {
     ToggleTouchpad(bool),
     /// User pressed the confirm button within the 10-second window after disabling.
     ConfirmClicked,
+    /// Apply touchpad state from a profile without saving.
+    LoadProfile(bool),
 }
 
 /// Async command results for the touchpad component.
@@ -126,7 +128,7 @@ impl Component for TouchpadModel {
         _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let touchpad_active = AppConfig::load().touchpad_active;
+        let touchpad_active = AppConfig::load().active_profile().touchpad_active;
         let model = TouchpadModel {
             touchpad_active,
             countdown: 10,
@@ -166,8 +168,27 @@ impl Component for TouchpadModel {
                     self.confirmation_required = false;
                 }
 
-                AppConfig::update(|c| c.touchpad_active = active);
+                AppConfig::update(|c| c.active_profile_mut().touchpad_active = active);
 
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            if let Err(e) = run_touchpad_command(active).await {
+                                out.emit(TouchpadCommandOutput::Error(e));
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
+            TouchpadMsg::LoadProfile(active) => {
+                if !self.desktop_supported {
+                    return;
+                }
+                if let Some(handle) = self.timer_handle.take() {
+                    handle.abort();
+                }
+                self.touchpad_active = active;
+                self.confirmation_required = false;
                 sender.command(move |out, shutdown| {
                     shutdown
                         .register(async move {
@@ -205,7 +226,7 @@ impl Component for TouchpadModel {
                 self.confirmation_required = false;
                 self.timer_handle = None;
 
-                AppConfig::update(|c| c.touchpad_active = true);
+                AppConfig::update(|c| c.active_profile_mut().touchpad_active = true);
 
                 sender.command(move |out, shutdown| {
                     shutdown

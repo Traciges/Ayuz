@@ -23,7 +23,23 @@ use crate::components::display::ColorGamutModel;
 use crate::components::display::OledCareModel;
 use crate::components::display::OledDimmingModel;
 use crate::components::display::TargetModeModel;
-use crate::components::home::HomeModel;
+use crate::components::home::{HomeModel, HomeOutput};
+use crate::components::audio::sound_modes::AudioMsg;
+use crate::components::audio::volume::VolumeMsg;
+use crate::components::display::color_gamut::ColorGamutMsg;
+use crate::components::display::oled_care::OledCareMsg;
+use crate::components::display::oled_dimming::OledDimmingMsg;
+use crate::components::display::target_mode::TargetModeMsg;
+use crate::components::keyboard::auto_backlight::AutoBacklightMsg;
+use crate::components::keyboard::backlight_idle::BacklightIdleMsg;
+use crate::components::keyboard::fn_key::FnKeyMsg;
+use crate::components::keyboard::gestures::GesturesMsg;
+use crate::components::keyboard::touchpad::TouchpadMsg;
+use crate::components::system::apu_mem::ApuMemMsg;
+use crate::components::system::battery::BatteryMsg;
+use crate::components::system::fan::FanMsg;
+use crate::components::system::gpu::GpuMsg;
+use crate::services::dbus::FanProfile;
 use crate::components::keyboard::AutoBacklightModel;
 use crate::components::keyboard::BacklightIdleModel;
 use crate::components::keyboard::FnKeyModel;
@@ -81,6 +97,7 @@ pub enum AppMsg {
     Error(String),
     SetLanguage(String),
     ToggleAutostart(bool),
+    ActivateProfile(String),
 }
 
 pub struct AppModel {
@@ -159,6 +176,47 @@ impl SimpleComponent for AppModel {
             AppMsg::ToggleAutostart(state) => {
                 crate::autostart::set_enabled(state);
             }
+            AppMsg::ActivateProfile(id) => {
+                crate::services::config::AppConfig::update(|c| c.active_profile_id = id.clone());
+                let config = crate::services::config::AppConfig::load();
+                let p = config.active_profile().clone();
+
+                // Display
+                self.fan.sender().emit(FanMsg::LoadProfile(FanProfile::from(p.fan_profile)));
+                self.oled_dimming.sender().emit(OledDimmingMsg::LoadProfile(p.oled_dc_dimming));
+                self.target_mode.sender().emit(TargetModeMsg::LoadProfile(p.target_mode_active));
+                self.color_gamut.sender().emit(ColorGamutMsg::LoadProfile(p.color_profile_index));
+                self.oled_care.sender().emit(OledCareMsg::LoadProfile {
+                    pixel_refresh: p.oled_care_pixel_refresh,
+                    panel_autohide: p.oled_care_panel_autohide,
+                    transparency: p.oled_care_transparency,
+                });
+
+                // Audio
+                self.sound_modes.sender().emit(AudioMsg::LoadProfile(p.audio_profile));
+                self.volume_widget.sender().emit(VolumeMsg::LoadProfile(p.volume));
+
+                // Keyboard & input
+                self.auto_backlight.sender().emit(AutoBacklightMsg::LoadProfile {
+                    brighten: p.kbd_brighten_active,
+                    dim: p.kbd_dim_active,
+                    brighten_threshold: p.kbd_brighten_threshold,
+                    dim_threshold: p.kbd_dim_threshold,
+                });
+                self.backlight_idle.sender().emit(BacklightIdleMsg::LoadProfile {
+                    mode: p.kbd_timeout_mode,
+                    ac_index: p.kbd_timeout_battery_ac_index,
+                    battery_index: p.kbd_timeout_battery_only_index,
+                });
+                self.touchpad.sender().emit(TouchpadMsg::LoadProfile(p.touchpad_active));
+                self.gestures.sender().emit(GesturesMsg::LoadProfile(p.input_gestures_active));
+                self.fn_key.sender().emit(FnKeyMsg::LoadProfile(p.input_fn_key_locked));
+
+                // System
+                self.battery.sender().emit(BatteryMsg::LoadProfile(p.battery_deep_sleep_active));
+                self.gpu.sender().emit(GpuMsg::LoadProfile(p.gpu_mode));
+                self.apu_mem.sender().emit(ApuMemMsg::LoadProfile(p.apu_mem));
+            }
         }
     }
 
@@ -167,7 +225,12 @@ impl SimpleComponent for AppModel {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let home = launch_component!(HomeModel, sender);
+        let home = HomeModel::builder()
+            .launch(())
+            .forward(sender.input_sender(), |msg| match msg {
+                HomeOutput::Error(e) => AppMsg::Error(e),
+                HomeOutput::ActivateProfile(id) => AppMsg::ActivateProfile(id),
+            });
         let apu_mem = launch_component!(ApuMemModel, sender);
         let battery = launch_component!(BatteryModel, sender);
         let fan = launch_component!(FanModel, sender);

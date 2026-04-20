@@ -33,83 +33,173 @@ fn default_dc_dimming() -> u32 {
 fn default_language() -> String {
     "en".to_string()
 }
+fn default_profiles() -> Vec<Profile> {
+    vec![]
+}
+fn default_profile_icon() -> String {
+    "computer-symbolic".to_string()
+}
+fn default_volume() -> f64 {
+    100.0
+}
+
+fn generate_profile_id() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    format!("{:x}{:04x}", t.as_secs(), t.subsec_millis())
+}
+
+/// A named hardware + software preset that can be switched at runtime.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Profile {
+    pub id: String,
+    pub name: String,
+    #[serde(default = "default_profile_icon")]
+    pub icon: String,
+
+    // Display
+    pub fan_profile: u32,
+    pub oled_dc_dimming: u32,
+    pub target_mode_active: bool,
+    pub color_profile_index: u32,
+    pub oled_care_pixel_refresh: bool,
+    pub oled_care_panel_autohide: bool,
+    pub oled_care_transparency: bool,
+
+    // Audio
+    pub audio_profile: u32,
+    #[serde(default = "default_volume")]
+    pub volume: f64,
+
+    // Keyboard & input
+    pub kbd_timeout_mode: u32,
+    pub kbd_timeout_battery_ac_index: u32,
+    pub kbd_timeout_battery_only_index: u32,
+    pub kbd_brighten_active: bool,
+    pub kbd_dim_active: bool,
+    pub kbd_brighten_threshold: f64,
+    pub kbd_dim_threshold: f64,
+    pub touchpad_active: bool,
+    pub input_gestures_active: bool,
+    pub input_fn_key_locked: bool,
+
+    // System
+    pub battery_deep_sleep_active: bool,
+    pub gpu_mode: u32,
+    pub apu_mem: i32,
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            name: "Default".to_string(),
+            icon: "computer-symbolic".to_string(),
+            fan_profile: 0,
+            oled_dc_dimming: 100,
+            target_mode_active: false,
+            color_profile_index: 0,
+            oled_care_pixel_refresh: false,
+            oled_care_panel_autohide: false,
+            oled_care_transparency: false,
+            audio_profile: 0,
+            volume: 100.0,
+            kbd_timeout_mode: 0,
+            kbd_timeout_battery_ac_index: 0,
+            kbd_timeout_battery_only_index: 0,
+            kbd_brighten_active: false,
+            kbd_dim_active: false,
+            kbd_brighten_threshold: 12.0,
+            kbd_dim_threshold: 35.0,
+            touchpad_active: true,
+            input_gestures_active: false,
+            input_fn_key_locked: false,
+            battery_deep_sleep_active: false,
+            gpu_mode: 0,
+            apu_mem: 0,
+        }
+    }
+}
+
 /// Persistent application configuration stored as JSON at `~/.config/asus-hub/config.json`.
-///
-/// All fields are serialised with `serde`. Fields added in later versions carry `#[serde(default)]`
-/// so that existing config files remain valid after an upgrade.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AppConfig {
-    /// Selected color gamut profile index (0 = native, 1 = sRGB, 2 = DCI-P3, 3 = Display P3).
-    pub color_profile_index: u32,
-    /// Whether the OLED pixel-refresh idle timer is enabled.
-    pub oled_care_pixel_refresh: bool,
-    /// Whether the KDE panel auto-hide feature is active.
-    pub oled_care_panel_autohide: bool,
-    /// Whether the KDE panel transparency effect is active.
-    pub oled_care_transparency: bool,
-    /// Whether suspend-to-RAM uses `deep` sleep instead of the default `s2idle`.
-    pub battery_deep_sleep_active: bool,
-    /// Active fan profile index matching [`crate::services::dbus::FanProfile`] repr values.
-    pub fan_profile: u32,
-    /// Whether touchpad edge gestures are active.
-    pub input_gestures_active: bool,
-    /// Whether the FN key is locked (media keys require FN modifier when `true`).
-    pub input_fn_key_locked: bool,
-    /// Whether auto-brighten (on low ambient light) is enabled for keyboard backlight.
-    #[serde(default)]
-    pub kbd_brighten_active: bool,
-    /// Whether auto-dim (on high ambient light) is enabled for keyboard backlight.
-    #[serde(default)]
-    pub kbd_dim_active: bool,
-    /// Keyboard backlight idle timeout mode (0 = never, 1 = battery+AC, 2 = battery only).
-    #[serde(default)]
-    pub kbd_timeout_mode: u32,
-    /// Timeout dropdown index used when on battery and AC power.
-    #[serde(default)]
-    pub kbd_timeout_battery_ac_index: u32,
-    /// Timeout dropdown index used when on battery only.
-    #[serde(default)]
-    pub kbd_timeout_battery_only_index: u32,
-    /// Ambient light threshold (lux) below which keyboard backlight is brightened (default 12).
-    #[serde(default = "default_brighten_threshold")]
-    pub kbd_brighten_threshold: f64,
-    /// Ambient light threshold (lux) above which keyboard backlight is dimmed (default 35).
-    #[serde(default = "default_dim_threshold")]
-    pub kbd_dim_threshold: f64,
-    /// Whether the touchpad is enabled (default `true`).
-    #[serde(default = "default_touchpad_active")]
-    pub touchpad_active: bool,
-    /// UI language code, e.g. `"en"` or `"de"` (default `"en"`).
+    // ── Global (non-profile) settings ────────────────────────────────────────
     #[serde(default = "default_language")]
     pub language: String,
-    /// Selected EasyEffects audio profile index.
+
+    // ── Profile management ───────────────────────────────────────────────────
     #[serde(default)]
-    pub audio_profile: u32,
-    /// OLED DC dimming level (10–100, default 100 = no dimming).
-    #[serde(default = "default_dc_dimming")]
+    pub active_profile_id: String,
+    #[serde(default = "default_profiles")]
+    pub profiles: Vec<Profile>,
+
+    // ── Legacy fields (read for migration only, never written) ────────────────
+    // Display
+    #[serde(default, skip_serializing)]
+    pub color_profile_index: u32,
+    #[serde(default = "default_dc_dimming", skip_serializing)]
     pub oled_dc_dimming: u32,
-    /// Whether the KDE "Diminish Inactive Windows" effect is active.
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub target_mode_active: bool,
-    /// Last GPU mode set by the user, stored as the `GfxMode` repr value (default `0` = Hybrid).
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
+    pub oled_care_pixel_refresh: bool,
+    #[serde(default, skip_serializing)]
+    pub oled_care_panel_autohide: bool,
+    #[serde(default, skip_serializing)]
+    pub oled_care_transparency: bool,
+    // Audio
+    #[serde(default, skip_serializing)]
+    pub audio_profile: u32,
+    // Keyboard
+    #[serde(default, skip_serializing)]
+    pub fan_profile: u32,
+    #[serde(default, skip_serializing)]
+    pub kbd_brighten_active: bool,
+    #[serde(default, skip_serializing)]
+    pub kbd_dim_active: bool,
+    #[serde(default, skip_serializing)]
+    pub kbd_timeout_mode: u32,
+    #[serde(default, skip_serializing)]
+    pub kbd_timeout_battery_ac_index: u32,
+    #[serde(default, skip_serializing)]
+    pub kbd_timeout_battery_only_index: u32,
+    #[serde(default = "default_brighten_threshold", skip_serializing)]
+    pub kbd_brighten_threshold: f64,
+    #[serde(default = "default_dim_threshold", skip_serializing)]
+    pub kbd_dim_threshold: f64,
+    #[serde(default = "default_touchpad_active", skip_serializing)]
+    pub touchpad_active: bool,
+    #[serde(default, skip_serializing)]
+    pub input_gestures_active: bool,
+    #[serde(default, skip_serializing)]
+    pub input_fn_key_locked: bool,
+    // System
+    #[serde(default, skip_serializing)]
+    pub battery_deep_sleep_active: bool,
+    #[serde(default, skip_serializing)]
     pub gpu_mode: u32,
-    /// Last APU memory (UMA frame buffer) size set by the user (default `0` = Auto).
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub apu_mem: i32,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
+            language: default_language(),
+            active_profile_id: String::new(),
+            profiles: vec![],
+            // legacy defaults
             color_profile_index: 0,
+            oled_dc_dimming: default_dc_dimming(),
+            target_mode_active: false,
             oled_care_pixel_refresh: false,
             oled_care_panel_autohide: false,
             oled_care_transparency: false,
-            battery_deep_sleep_active: false,
+            audio_profile: 0,
             fan_profile: 0,
-            input_gestures_active: false,
-            input_fn_key_locked: false,
             kbd_brighten_active: false,
             kbd_dim_active: false,
             kbd_timeout_mode: 0,
@@ -118,10 +208,9 @@ impl Default for AppConfig {
             kbd_brighten_threshold: default_brighten_threshold(),
             kbd_dim_threshold: default_dim_threshold(),
             touchpad_active: default_touchpad_active(),
-            language: default_language(),
-            audio_profile: 0,
-            oled_dc_dimming: default_dc_dimming(),
-            target_mode_active: false,
+            input_gestures_active: false,
+            input_fn_key_locked: false,
+            battery_deep_sleep_active: false,
             gpu_mode: 0,
             apu_mem: 0,
         }
@@ -129,28 +218,28 @@ impl Default for AppConfig {
 }
 
 impl AppConfig {
-    /// Returns the application's config directory (e.g. `~/.config/asus-hub`).
     pub fn config_dir() -> Option<std::path::PathBuf> {
         ProjectDirs::from("", "", "asus-hub").map(|dirs| dirs.config_dir().to_path_buf())
     }
 
-    /// Returns the full path to `config.json` inside the config directory.
     fn config_path() -> Option<std::path::PathBuf> {
         Self::config_dir().map(|dir| dir.join("config.json"))
     }
 
-    /// Loads the config from disk, falling back to [`Default`] if the file is absent or invalid.
     pub fn load() -> Self {
         let Some(path) = Self::config_path() else {
-            return Self::default();
+            let mut c = Self::default();
+            c.ensure_default_profile();
+            return c;
         };
-        fs::read_to_string(&path)
+        let mut config: AppConfig = fs::read_to_string(&path)
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        config.ensure_default_profile();
+        config
     }
 
-    /// Serialises the config to `config.json`, silently ignoring all I/O errors.
     pub fn save(&self) {
         let Some(path) = Self::config_path() else {
             return;
@@ -163,10 +252,65 @@ impl AppConfig {
         }
     }
 
-    /// Loads the config, applies `f` to mutate it, then saves it back to disk.
     pub fn update(f: impl FnOnce(&mut Self)) {
         let mut config = Self::load();
         f(&mut config);
         config.save();
+    }
+
+    /// Returns a reference to the currently active profile.
+    pub fn active_profile(&self) -> &Profile {
+        self.profiles
+            .iter()
+            .find(|p| p.id == self.active_profile_id)
+            .or_else(|| self.profiles.first())
+            .expect("profiles must not be empty after ensure_default_profile")
+    }
+
+    /// Returns a mutable reference to the currently active profile.
+    pub fn active_profile_mut(&mut self) -> &mut Profile {
+        let id = self.active_profile_id.clone();
+        if let Some(idx) = self.profiles.iter().position(|p| p.id == id) {
+            return &mut self.profiles[idx];
+        }
+        &mut self.profiles[0]
+    }
+
+    /// If `profiles` is empty (first run / upgrade from legacy config), creates a "Default"
+    /// profile seeded from the legacy flat fields and sets it as active.
+    pub fn ensure_default_profile(&mut self) {
+        if !self.profiles.is_empty() {
+            return;
+        }
+        let id = generate_profile_id();
+        self.profiles.push(Profile {
+            id: id.clone(),
+            name: "Default".to_string(),
+            icon: "computer-symbolic".to_string(),
+            fan_profile: self.fan_profile,
+            oled_dc_dimming: self.oled_dc_dimming,
+            target_mode_active: self.target_mode_active,
+            color_profile_index: self.color_profile_index,
+            oled_care_pixel_refresh: self.oled_care_pixel_refresh,
+            oled_care_panel_autohide: self.oled_care_panel_autohide,
+            oled_care_transparency: self.oled_care_transparency,
+            audio_profile: self.audio_profile,
+            volume: 100.0,
+            kbd_timeout_mode: self.kbd_timeout_mode,
+            kbd_timeout_battery_ac_index: self.kbd_timeout_battery_ac_index,
+            kbd_timeout_battery_only_index: self.kbd_timeout_battery_only_index,
+            kbd_brighten_active: self.kbd_brighten_active,
+            kbd_dim_active: self.kbd_dim_active,
+            kbd_brighten_threshold: self.kbd_brighten_threshold,
+            kbd_dim_threshold: self.kbd_dim_threshold,
+            touchpad_active: self.touchpad_active,
+            input_gestures_active: self.input_gestures_active,
+            input_fn_key_locked: self.input_fn_key_locked,
+            battery_deep_sleep_active: self.battery_deep_sleep_active,
+            gpu_mode: self.gpu_mode,
+            apu_mem: self.apu_mem,
+        });
+        self.active_profile_id = id;
+        self.save();
     }
 }

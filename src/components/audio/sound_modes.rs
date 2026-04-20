@@ -59,6 +59,7 @@ pub enum AudioMsg {
     ChangeProfile(u32),
     CustomPresetPathSelected(PathBuf),
     CustomCancelled(u32),
+    LoadProfile(u32),
 }
 
 #[derive(Debug)]
@@ -123,7 +124,8 @@ impl Component for SoundModesModel {
         ]);
         let dropdown = gtk::DropDown::new(Some(options), gtk::Expression::NONE);
         dropdown.set_valign(gtk::Align::Center);
-        dropdown.set_selected(config.audio_profile);
+        let saved_audio = config.active_profile().audio_profile;
+        dropdown.set_selected(saved_audio);
 
         {
             let sender = sender.clone();
@@ -134,8 +136,8 @@ impl Component for SoundModesModel {
 
         let model = SoundModesModel {
             ee_installed: false,
-            current_profile: config.audio_profile,
-            previous_profile: config.audio_profile,
+            current_profile: saved_audio,
+            previous_profile: saved_audio,
             dropdown,
         };
 
@@ -216,7 +218,7 @@ impl Component for SoundModesModel {
 
                 self.previous_profile = self.current_profile;
                 self.current_profile = idx;
-                AppConfig::update(|c| c.audio_profile = idx);
+                AppConfig::update(|c| c.active_profile_mut().audio_profile = idx);
 
                 sender.command(move |out, shutdown| {
                     shutdown
@@ -238,7 +240,7 @@ impl Component for SoundModesModel {
                 }
 
                 AppConfig::update(|c| {
-                    c.audio_profile = CUSTOM_IDX;
+                    c.active_profile_mut().audio_profile = CUSTOM_IDX;
                 });
 
                 sender.command(move |out, shutdown| {
@@ -256,7 +258,25 @@ impl Component for SoundModesModel {
             AudioMsg::CustomCancelled(previous) => {
                 self.current_profile = previous;
                 self.dropdown.set_selected(previous);
-                AppConfig::update(|c| c.audio_profile = previous);
+                AppConfig::update(|c| c.active_profile_mut().audio_profile = previous);
+            }
+            AudioMsg::LoadProfile(idx) => {
+                if !self.ee_installed {
+                    return;
+                }
+                self.current_profile = idx;
+                self.dropdown.set_selected(idx);
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            if let Err(e) = set_easyeffects_profile(idx, None).await {
+                                out.emit(AudioCommandOutput::Error(e));
+                                return;
+                            }
+                            out.emit(AudioCommandOutput::ProfileSet(idx));
+                        })
+                        .drop_on_shutdown()
+                });
             }
         }
     }

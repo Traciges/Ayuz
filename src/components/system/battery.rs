@@ -50,6 +50,8 @@ pub enum BatteryMsg {
     ToggleFullCharge(bool),
     /// Switch suspend-to-RAM between `s2idle` (`false`) and `deep` (`true`).
     ToggleDeepSleep(bool),
+    /// Apply deep-sleep setting from a profile without saving.
+    LoadProfile(bool),
 }
 
 /// Async command results for the battery component.
@@ -245,8 +247,25 @@ impl Component for BatteryModel {
                 }
 
                 self.deep_sleep_active = active;
-                AppConfig::update(|c| c.battery_deep_sleep_active = active);
+                AppConfig::update(|c| c.active_profile_mut().battery_deep_sleep_active = active);
 
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            let value = if active { "deep" } else { "s2idle" };
+                            match pkexec_write_sysfs(SYS_MEM_SLEEP, value).await {
+                                Ok(()) => out.emit(BatteryCommandOutput::DeepSleepSet(active)),
+                                Err(e) => out.emit(BatteryCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
+            BatteryMsg::LoadProfile(active) => {
+                if self.deep_sleep_active == active || !self.deep_sleep_supported {
+                    return;
+                }
+                self.deep_sleep_active = active;
                 sender.command(move |out, shutdown| {
                     shutdown
                         .register(async move {

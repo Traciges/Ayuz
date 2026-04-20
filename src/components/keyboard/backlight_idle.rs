@@ -81,6 +81,11 @@ pub enum BacklightIdleMsg {
     ChangeMode(TimeoutMode),
     BatteryAndAcTimeChanged(u32),
     BatteryOnlyTimeChanged(u32),
+    LoadProfile {
+        mode: u32,
+        ac_index: u32,
+        battery_index: u32,
+    },
 }
 
 #[derive(Debug)]
@@ -137,7 +142,8 @@ impl Component for BacklightIdleModel {
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let config = AppConfig::load();
-        let mode = TimeoutMode::from(config.kbd_timeout_mode);
+        let p = config.active_profile();
+        let mode = TimeoutMode::from(p.kbd_timeout_mode);
 
         let check_never = gtk::CheckButton::new();
         let check_battery_and_ac = gtk::CheckButton::new();
@@ -158,8 +164,8 @@ impl Component for BacklightIdleModel {
         let dropdown_battery_and_ac =
             gtk::DropDown::new(Some(time_options.clone()), gtk::Expression::NONE);
         let dropdown_battery_only = gtk::DropDown::new(Some(time_options), gtk::Expression::NONE);
-        dropdown_battery_and_ac.set_selected(config.kbd_timeout_battery_ac_index);
-        dropdown_battery_only.set_selected(config.kbd_timeout_battery_only_index);
+        dropdown_battery_and_ac.set_selected(p.kbd_timeout_battery_ac_index);
+        dropdown_battery_only.set_selected(p.kbd_timeout_battery_only_index);
 
         for (btn, mode_val) in [
             (&check_never, TimeoutMode::Never),
@@ -206,20 +212,34 @@ impl Component for BacklightIdleModel {
         match msg {
             BacklightIdleMsg::ChangeMode(mode) => {
                 self.timeout_mode = mode;
-                AppConfig::update(|c| c.kbd_timeout_mode = mode as u32);
+                AppConfig::update(|c| c.active_profile_mut().kbd_timeout_mode = mode as u32);
                 self.apply_timeout(mode, &sender);
             }
             BacklightIdleMsg::BatteryAndAcTimeChanged(index) => {
-                AppConfig::update(|c| c.kbd_timeout_battery_ac_index = index);
+                AppConfig::update(|c| c.active_profile_mut().kbd_timeout_battery_ac_index = index);
                 if self.timeout_mode == TimeoutMode::BatteryAndAc {
                     self.apply_timeout(TimeoutMode::BatteryAndAc, &sender);
                 }
             }
             BacklightIdleMsg::BatteryOnlyTimeChanged(index) => {
-                AppConfig::update(|c| c.kbd_timeout_battery_only_index = index);
+                AppConfig::update(|c| c.active_profile_mut().kbd_timeout_battery_only_index = index);
                 if self.timeout_mode == TimeoutMode::BatteryOnly {
                     self.apply_timeout(TimeoutMode::BatteryOnly, &sender);
                 }
+            }
+            BacklightIdleMsg::LoadProfile {
+                mode,
+                ac_index,
+                battery_index,
+            } => {
+                let timeout_mode = TimeoutMode::from(mode);
+                self.timeout_mode = timeout_mode;
+                self.check_never.set_active(timeout_mode == TimeoutMode::Never);
+                self.check_battery_and_ac.set_active(timeout_mode == TimeoutMode::BatteryAndAc);
+                self.check_battery_only.set_active(timeout_mode == TimeoutMode::BatteryOnly);
+                self.dropdown_battery_and_ac.set_selected(ac_index);
+                self.dropdown_battery_only.set_selected(battery_index);
+                self.apply_timeout(timeout_mode, &sender);
             }
         }
     }

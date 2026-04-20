@@ -51,6 +51,8 @@ pub struct ApuMemModel {
 pub enum ApuMemMsg {
     /// User selected index `idx` in the memory size dropdown.
     ChangeValue(u32),
+    /// Apply APU memory value from a profile without saving.
+    LoadProfile(i32),
 }
 
 /// Async command results for the APU memory component.
@@ -126,7 +128,7 @@ impl Component for ApuMemModel {
             }
         });
 
-        let saved_value = AppConfig::load().apu_mem;
+        let saved_value = AppConfig::load().active_profile().apu_mem;
 
         // Set a placeholder model so the ComboRow always renders,
         // even before the daemon responds or when it is unavailable.
@@ -170,6 +172,25 @@ impl Component for ApuMemModel {
 
     fn update(&mut self, msg: ApuMemMsg, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
+            ApuMemMsg::LoadProfile(value) => {
+                if !self.available {
+                    return;
+                }
+                self.current_value = value;
+                if let Some(idx) = self.display_options.iter().position(|&v| v == value) {
+                    self.combo_row.set_selected(idx as u32);
+                }
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            match dbus::set_apu_mem(value).await {
+                                Ok(v) => out.emit(ApuMemCommandOutput::ValueSet(v)),
+                                Err(e) => out.emit(ApuMemCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
             ApuMemMsg::ChangeValue(idx) => {
                 let Some(&value) = self.display_options.get(idx as usize) else {
                     return;
@@ -178,7 +199,7 @@ impl Component for ApuMemModel {
                     return;
                 }
                 self.current_value = value;
-                AppConfig::update(|c| c.apu_mem = value);
+                AppConfig::update(|c| c.active_profile_mut().apu_mem = value);
 
                 sender.command(move |out, shutdown| {
                     shutdown

@@ -43,6 +43,7 @@ pub struct OledDimmingModel {
 #[derive(Debug)]
 pub enum OledDimmingMsg {
     SetBrightness(u32),
+    LoadProfile(u32),
 }
 
 #[derive(Debug)]
@@ -122,7 +123,7 @@ impl Component for OledDimmingModel {
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let config = AppConfig::load();
-        let brightness = config.oled_dc_dimming;
+        let brightness = config.active_profile().oled_dc_dimming;
 
         let model = OledDimmingModel {
             brightness,
@@ -156,8 +157,24 @@ impl Component for OledDimmingModel {
                     return;
                 }
                 self.brightness = value;
-                AppConfig::update(|c| c.oled_dc_dimming = value);
+                AppConfig::update(|c| c.active_profile_mut().oled_dc_dimming = value);
 
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            match apply_dimming(value).await {
+                                Ok(()) => out.emit(OledDimmingCommandOutput::Set(value)),
+                                Err(e) => out.emit(OledDimmingCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
+            OledDimmingMsg::LoadProfile(value) => {
+                if !self.kde_available {
+                    return;
+                }
+                self.brightness = value;
                 sender.command(move |out, shutdown| {
                     shutdown
                         .register(async move {

@@ -40,6 +40,8 @@ pub struct FanModel {
 pub enum FanMsg {
     /// Switch to the given fan profile and persist the choice.
     ChangeProfile(FanProfile),
+    /// Apply a profile without saving (called when switching hardware profiles).
+    LoadProfile(FanProfile),
 }
 
 /// Async command results for the fan profile component.
@@ -120,7 +122,7 @@ impl Component for FanModel {
         check_quiet.set_group(Some(&check_performance));
 
         let config = AppConfig::load();
-        let saved_profile = FanProfile::from(config.fan_profile);
+        let saved_profile = FanProfile::from(config.active_profile().fan_profile);
         match saved_profile {
             FanProfile::Performance => check_performance.set_active(true),
             FanProfile::Balanced => check_balanced.set_active(true),
@@ -184,7 +186,28 @@ impl Component for FanModel {
                     return;
                 }
                 self.current_profile = profile;
-                AppConfig::update(|c| c.fan_profile = profile as u32);
+                AppConfig::update(|c| c.active_profile_mut().fan_profile = profile as u32);
+
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            match dbus::set_fan_profile(profile).await {
+                                Ok(p) => out.emit(FanCommandOutput::ProfileSet(p)),
+                                Err(e) => out.emit(FanCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
+            FanMsg::LoadProfile(profile) => {
+                if !self.asusd_available {
+                    return;
+                }
+                self.current_profile = profile;
+                self.check_performance.set_active(profile == FanProfile::Performance);
+                self.check_balanced.set_active(profile == FanProfile::Balanced);
+                self.check_quiet
+                    .set_active(profile == FanProfile::Quiet || profile == FanProfile::LowPower);
 
                 sender.command(move |out, shutdown| {
                     shutdown

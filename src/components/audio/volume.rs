@@ -28,6 +28,7 @@ pub struct VolumeModel {
 pub enum VolumeMsg {
     SetVolume(f64),
     UpdateUi(f64),
+    LoadProfile(f64),
 }
 
 // SimpleComponent is intentional here: volume control needs no async CommandOutput or
@@ -101,6 +102,19 @@ impl SimpleComponent for VolumeModel {
                 self.volume = vol;
             }
             VolumeMsg::SetVolume(vol) => {
+                self.volume = vol;
+                crate::services::config::AppConfig::update(|c| {
+                    c.active_profile_mut().volume = vol;
+                });
+                let _ = tokio::process::Command::new("wpctl")
+                    .args([
+                        "set-volume",
+                        "@DEFAULT_AUDIO_SINK@",
+                        &format!("{}%", vol as i32),
+                    ])
+                    .spawn();
+            }
+            VolumeMsg::LoadProfile(vol) => {
                 self.volume = vol;
                 let _ = tokio::process::Command::new("wpctl")
                     .args([

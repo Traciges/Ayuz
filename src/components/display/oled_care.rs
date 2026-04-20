@@ -36,6 +36,11 @@ pub enum OledCareMsg {
     TogglePixelRefresh(bool),
     TogglePanelAutohide(bool),
     ToggleTransparency(bool),
+    LoadProfile {
+        pixel_refresh: bool,
+        panel_autohide: bool,
+        transparency: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -132,10 +137,11 @@ impl Component for OledCareModel {
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let config = AppConfig::load();
+        let p = config.active_profile();
         let model = OledCareModel {
-            pixel_refresh_active: config.oled_care_pixel_refresh,
-            panel_autohide_active: config.oled_care_panel_autohide,
-            transparency_active: config.oled_care_transparency,
+            pixel_refresh_active: p.oled_care_pixel_refresh,
+            panel_autohide_active: p.oled_care_panel_autohide,
+            transparency_active: p.oled_care_transparency,
             kde_available: is_kde_desktop(),
         };
         let widgets = view_output!();
@@ -150,7 +156,7 @@ impl Component for OledCareModel {
                 }
                 self.pixel_refresh_active = active;
 
-                AppConfig::update(|c| c.oled_care_pixel_refresh = active);
+                AppConfig::update(|c| c.active_profile_mut().oled_care_pixel_refresh = active);
 
                 let idle_time = if active { "300" } else { "600" };
                 sender.command(move |out, shutdown| {
@@ -185,7 +191,7 @@ impl Component for OledCareModel {
                 }
                 self.panel_autohide_active = active;
 
-                AppConfig::update(|c| c.oled_care_panel_autohide = active);
+                AppConfig::update(|c| c.active_profile_mut().oled_care_panel_autohide = active);
 
                 let hiding = if active { "autohide" } else { "none" };
                 let script = format!("panels().forEach(function(p){{p.hiding='{}';}})", hiding);
@@ -208,7 +214,7 @@ impl Component for OledCareModel {
                 }
                 self.transparency_active = active;
 
-                AppConfig::update(|c| c.oled_care_transparency = active);
+                AppConfig::update(|c| c.active_profile_mut().oled_care_transparency = active);
 
                 let opacity = if active { "transparent" } else { "opaque" };
                 let script = format!("panels().forEach(function(p){{p.opacity='{}';}})", opacity);
@@ -224,6 +230,18 @@ impl Component for OledCareModel {
                         })
                         .drop_on_shutdown()
                 });
+            }
+            OledCareMsg::LoadProfile {
+                pixel_refresh,
+                panel_autohide,
+                transparency,
+            } => {
+                if !self.kde_available {
+                    return;
+                }
+                sender.input(OledCareMsg::TogglePixelRefresh(pixel_refresh));
+                sender.input(OledCareMsg::TogglePanelAutohide(panel_autohide));
+                sender.input(OledCareMsg::ToggleTransparency(transparency));
             }
         }
     }

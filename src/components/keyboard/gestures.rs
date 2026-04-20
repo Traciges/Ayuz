@@ -33,6 +33,7 @@ pub struct GesturesModel {
 #[derive(Debug)]
 pub enum GesturesMsg {
     ToggleGestures(bool),
+    LoadProfile(bool),
 }
 
 const GESTURE_IMG: &[u8] = include_bytes!("../../../assets/img/gesture.png");
@@ -99,7 +100,7 @@ impl Component for GesturesModel {
         _root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let active = AppConfig::load().input_gestures_active;
+        let active = AppConfig::load().active_profile().input_gestures_active;
         let loop_tx = if active {
             Some(start_gesture_loop())
         } else {
@@ -123,12 +124,19 @@ impl Component for GesturesModel {
                     return;
                 }
                 self.active = active;
-                AppConfig::update(|c| c.input_gestures_active = active);
+                AppConfig::update(|c| c.active_profile_mut().input_gestures_active = active);
 
                 if active {
                     self.loop_tx = Some(start_gesture_loop());
                 } else {
-                    // Dropping the sender causes the loop to exit
+                    self.loop_tx = None;
+                }
+            }
+            GesturesMsg::LoadProfile(active) => {
+                self.active = active;
+                if active {
+                    self.loop_tx = Some(start_gesture_loop());
+                } else {
                     self.loop_tx = None;
                 }
             }

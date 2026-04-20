@@ -41,6 +41,8 @@ pub struct GpuModel {
 pub enum GpuMsg {
     /// User selected index `idx` in the mode dropdown.
     ChangeMode(u32),
+    /// Apply GPU mode from a profile without saving.
+    LoadProfile(u32),
 }
 
 /// Async command results for the GPU mode component.
@@ -116,7 +118,7 @@ impl Component for GpuModel {
             }
         });
 
-        let saved_mode = GfxMode::from(AppConfig::load().gpu_mode);
+        let saved_mode = GfxMode::from(AppConfig::load().active_profile().gpu_mode);
 
         // Set a placeholder model so the ComboRow always renders,
         // even before the daemon responds or when it is unavailable.
@@ -167,6 +169,26 @@ impl Component for GpuModel {
 
     fn update(&mut self, msg: GpuMsg, sender: ComponentSender<Self>, _root: &Self::Root) {
         match msg {
+            GpuMsg::LoadProfile(mode_u32) => {
+                if !self.supergfxctl_available {
+                    return;
+                }
+                let mode = GfxMode::from(mode_u32);
+                self.current_mode = mode;
+                if let Some(idx) = self.display_modes.iter().position(|&m| m == mode) {
+                    self.combo_row.set_selected(idx as u32);
+                }
+                sender.command(move |out, shutdown| {
+                    shutdown
+                        .register(async move {
+                            match dbus::set_gpu_mode(mode).await {
+                                Ok(m) => out.emit(GpuCommandOutput::ModeSet(m)),
+                                Err(e) => out.emit(GpuCommandOutput::Error(e)),
+                            }
+                        })
+                        .drop_on_shutdown()
+                });
+            }
             GpuMsg::ChangeMode(idx) => {
                 let Some(&mode) = self.display_modes.get(idx as usize) else {
                     return;
@@ -175,7 +197,7 @@ impl Component for GpuModel {
                     return;
                 }
                 self.current_mode = mode;
-                AppConfig::update(|c| c.gpu_mode = mode as u32);
+                AppConfig::update(|c| c.active_profile_mut().gpu_mode = mode as u32);
 
                 sender.command(move |out, shutdown| {
                     shutdown
