@@ -61,6 +61,8 @@
                     brightnessctl
                     playerctl
                     pulseaudio
+                    iio-sensor-proxy
+                    glib
                   ]
                 )
               }
