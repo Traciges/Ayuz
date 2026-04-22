@@ -177,6 +177,12 @@ sudo dnf install gtk4-devel libadwaita-devel
 sudo pacman -S gtk4 libadwaita
 ```
 
+**NixOs**
+
+```bash
+nix develop
+```
+
 ### 2. Install external tools
 
 Most tools are already included with a standard Fedora KDE installation (`kscreen-doctor`, `kwriteconfig6`, `wpctl`). The following need to be installed manually: <br>
@@ -225,6 +231,43 @@ sudo dnf copr enable skyr0ver/asus-hub
 sudo dnf install asus-hub
 sudo systemctl enable --now supergfxd.service
 ```
+
+**NixOS (Flakes):**
+
+Add `ayuz` to your `flake.nix` inputs: `ayuz.url = "github:Klbgr/Ayuz";`.
+
+- **NixOS Module (Recommended):** Automatically configures required system services (`asusd`, `supergfxd`), udev rules, and polkit policies.
+  ```nix
+  { inputs, ... }: {
+    imports = [ inputs.ayuz.nixosModules.default ];
+    services.ayuz.enable = true;
+    services.ayuz.supportMyAsusKey = true; # Optional: Rebind MyAsus/ROG key to launch Ayuz
+  }
+  ```
+- **Home Manager Module:** For per-user installation and optional autostart.
+  ```nix
+  { inputs, ... }: {
+    imports = [ inputs.ayuz.homeManagerModules.default ];
+    programs.ayuz.enable = true;
+    programs.ayuz.autostart = true; # Start minimized on login
+  }
+  ```
+- **Traditional (Flakeless) usage:** You can use `builtins.getFlake` to use the modules or package directly.
+  ```nix
+  { pkgs, ... }: 
+  let
+    ayuz-flake = builtins.getFlake "github:Klbgr/Ayuz";
+  in {
+    imports = [ ayuz-flake.nixosModules.default ];
+    services.ayuz.enable = true;
+    services.ayuz.supportMyAsusKey = true;
+    home-manager.users.username = {
+      imports = [ ayuz-flake.homeManagerModules.default ];
+      programs.ayuz.enable = true;
+      programs.ayuz.autostart = true;
+    };
+  }
+  ```
 
 **Manual Download:**
 
