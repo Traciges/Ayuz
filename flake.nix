@@ -126,10 +126,16 @@
               default = true;
               description = "Whether to rebind the MyAsus/ROG key to launch Ayuz.";
             };
+            fnKeyMode = lib.mkOption {
+              type = lib.types.nullOr (lib.types.enum [ "function" "shortcut" ]);
+              default = "shortcut";
+              description = "Priority for the top row of keys: 'function' for F1-F12, 'shortcut' for media keys (volume, brightness, etc.). Sets asus_wmi.fnlock_default.";
+            };
           };
 
           config = lib.mkIf cfg.enable {
             environment.systemPackages = [ ayuz-pkg ];
+            boot.kernelParams = lib.optional (cfg.fnKeyMode != null) "asus_wmi.fnlock_default=${if cfg.fnKeyMode == "function" then "1" else "0"}";
 
             services.asusd.enable = lib.mkDefault true;
             # Force asusd to start on boot

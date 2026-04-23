@@ -235,7 +235,8 @@ Add `ayuz` to your `flake.nix` inputs: `ayuz.url = "github:Klbgr/Ayuz";`.
   { inputs, ... }: {
     imports = [ inputs.ayuz.nixosModules.default ];
     services.ayuz.enable = true;
-    services.ayuz.supportMyAsusKey = true; # Optional: Rebind MyAsus/ROG key to launch Ayuz
+    services.ayuz.supportMyAsusKey = true; # Rebind MyAsus/ROG key to launch Ayuz
+    services.ayuz.fnKeyMode = "shortcut"; # Set the initial Fn key lock state
   }
   ```
 - **Home Manager Module:** For per-user installation, optional autostart, and configuration.
@@ -257,12 +258,10 @@ Add `ayuz` to your `flake.nix` inputs: `ayuz.url = "github:Klbgr/Ayuz";`.
     ayuz-flake = builtins.getFlake "github:Klbgr/Ayuz";
   in {
     imports = [ ayuz-flake.nixosModules.default ];
-    services.ayuz.enable = true;
-    services.ayuz.supportMyAsusKey = true;
+    services.ayuz = { ... };
     home-manager.users.username = {
       imports = [ ayuz-flake.homeManagerModules.default ];
-      programs.ayuz.enable = true;
-      programs.ayuz.autostart = true;
+      programs.ayuz = { ... };
     };
   }
   ```
