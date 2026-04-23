@@ -54,7 +54,6 @@
                     wireplumber
                     easyeffects
                     procps
-                    polkit
                     coreutils
                     which
                     xdg-utils
