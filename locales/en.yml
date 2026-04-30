@@ -234,7 +234,7 @@ migration_dialog_no: "Skip"
 legacy_migration_group_title: "Legacy Import"
 legacy_migration_group_desc: "If you previously used asus-hub, you can manually import your old configuration here. This copies ~/.config/asus-hub/config.json into Ayuz and removes the legacy folder afterwards."
 legacy_migration_row_title: "Import Legacy Configuration"
-legacy_migration_row_subtitle_available: "Legacy configuration found — ready to import."
+legacy_migration_row_subtitle_available: "Legacy configuration found - ready to import."
 legacy_migration_row_subtitle_unavailable: "No legacy configuration found."
 legacy_migration_button: "Import"
 

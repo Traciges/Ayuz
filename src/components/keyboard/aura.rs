@@ -36,13 +36,13 @@ pub struct AuraModel {
     current_colour: Colour,
     /// Modes reported as supported by the hardware.
     supported_modes: Vec<AuraModeNum>,
-    /// Mode selection dropdown — stored for imperative updates from `update_cmd`.
+    /// Mode selection dropdown - stored for imperative updates from `update_cmd`.
     mode_combo: adw::ComboRow,
-    /// Brightness dropdown — stored for imperative updates from `update_cmd`.
+    /// Brightness dropdown - stored for imperative updates from `update_cmd`.
     brightness_combo: adw::ComboRow,
     /// ActionRow that wraps `colour_button`; stored so `#[watch]` can toggle sensitivity.
     colour_row: adw::ActionRow,
-    /// Colour picker — stored for imperative RGBA updates from `update_cmd`.
+    /// Colour picker - stored for imperative RGBA updates from `update_cmd`.
     colour_button: gtk::ColorDialogButton,
 }
 
@@ -417,7 +417,8 @@ impl Component for AuraModel {
                     .map(|m| t!(m.i18n_key()).to_string())
                     .collect();
                 let refs: Vec<&str> = translated.iter().map(|s| s.as_str()).collect();
-                self.mode_combo.set_model(Some(&gtk::StringList::new(&refs)));
+                self.mode_combo
+                    .set_model(Some(&gtk::StringList::new(&refs)));
 
                 let selected_idx = self
                     .supported_modes
@@ -438,7 +439,10 @@ impl Component for AuraModel {
             AuraCommandOutput::EffectSet => {
                 tracing::info!(
                     "{}",
-                    t!("aura_mode_set", mode = t!(self.current_mode.i18n_key()).to_string())
+                    t!(
+                        "aura_mode_set",
+                        mode = t!(self.current_mode.i18n_key()).to_string()
+                    )
                 );
             }
             AuraCommandOutput::BrightnessSet(b) => {
@@ -457,7 +461,7 @@ impl AuraModel {
     fn build_effect(&self) -> AuraEffect {
         AuraEffect {
             mode: self.current_mode as u32,
-            zone: 0, // AuraZone::None — applies to the full keyboard
+            zone: 0, // AuraZone::None - applies to the full keyboard
             colour1: self.current_colour,
             colour2: Colour { r: 0, g: 0, b: 0 },
             speed: "Med".to_string(),
