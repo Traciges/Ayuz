@@ -467,18 +467,52 @@ async fn aura_proxy() -> Result<&'static AuraProxy<'static>, String> {
         .await
 }
 
-/// Returns `true` if the Aura D-Bus interface is reachable on `asusd`.
+/// Describes the three possible states of Aura RGB support on this system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AuraStatus {
+    /// `asusd` is running and the `xyz.ljones.Aura` interface is available.
+    Available,
+    /// `asusd` is running but this laptop has no Aura-capable keyboard.
+    HardwareNotSupported,
+    /// `asusd` is not installed or not running.
+    DaemonNotRunning,
+}
+
+/// Detects Aura availability by querying the D-Bus ObjectManager on `asusd`.
 ///
-/// Opens a fresh connection each time to avoid caching a stale result.
-pub async fn check_aura_available() -> bool {
+/// Distinguishes between the daemon not running and the hardware simply not
+/// supporting Aura (e.g. non-RGB keyboard), so callers can show accurate messages.
+pub async fn check_aura_status() -> AuraStatus {
     let conn = match zbus::Connection::system().await {
         Ok(c) => c,
-        Err(_) => return false,
+        Err(_) => return AuraStatus::DaemonNotRunning,
     };
-    if let Ok(proxy) = AuraProxy::new(&conn).await {
-        proxy.brightness().await.is_ok()
+
+    let manager = match zbus::fdo::ObjectManagerProxy::builder(&conn)
+        .destination("xyz.ljones.Asusd")
+        .unwrap()
+        .path("/")
+        .unwrap()
+        .build()
+        .await
+    {
+        Ok(m) => m,
+        Err(_) => return AuraStatus::DaemonNotRunning,
+    };
+
+    let objects = match manager.get_managed_objects().await {
+        Ok(o) => o,
+        Err(_) => return AuraStatus::DaemonNotRunning,
+    };
+
+    let has_aura = objects
+        .values()
+        .any(|ifaces| ifaces.contains_key("xyz.ljones.Aura"));
+
+    if has_aura {
+        AuraStatus::Available
     } else {
-        false
+        AuraStatus::HardwareNotSupported
     }
 }
 

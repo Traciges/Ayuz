@@ -22,12 +22,12 @@ use relm4::prelude::*;
 use rust_i18n::t;
 
 use crate::services::config::AppConfig;
-use crate::services::dbus::{self, AuraEffect, AuraModeNum, Colour};
+use crate::services::dbus::{self, AuraEffect, AuraModeNum, AuraStatus, Colour};
 
 /// State for the Aura RGB keyboard lighting component.
 pub struct AuraModel {
-    /// Whether the `asusd` Aura D-Bus interface is reachable.
-    asusd_available: bool,
+    /// Current Aura support status: available, hardware unsupported, or daemon absent.
+    aura_status: AuraStatus,
     /// Currently active lighting mode.
     current_mode: AuraModeNum,
     /// Current brightness level (0 = Off … 3 = High).
@@ -68,8 +68,8 @@ pub enum AuraMsg {
 /// Async command results for the Aura lighting component.
 #[derive(Debug)]
 pub enum AuraCommandOutput {
-    /// Result of the initial Aura availability check.
-    AsusdChecked(bool),
+    /// Result of the initial Aura status check.
+    AuraStatusChecked(AuraStatus),
     /// Initial state read from the daemon: supported modes, current effect, brightness.
     InitData {
         supported_modes: Vec<AuraModeNum>,
@@ -98,9 +98,22 @@ impl Component for AuraModel {
 
             add = &gtk::Label {
                 #[watch]
-                set_visible: !model.asusd_available,
-                set_label: &t!("aura_missing_warning"),
+                set_visible: model.aura_status == AuraStatus::DaemonNotRunning,
+                set_label: &t!("aura_daemon_missing_warning"),
                 add_css_class: "error",
+                set_wrap: true,
+                set_xalign: 0.0,
+                set_margin_top: 8,
+                set_margin_start: 12,
+                set_margin_end: 12,
+                set_margin_bottom: 4,
+            },
+
+            add = &gtk::Label {
+                #[watch]
+                set_visible: model.aura_status == AuraStatus::HardwareNotSupported,
+                set_label: &t!("aura_hardware_missing_warning"),
+                add_css_class: "dim-label",
                 set_wrap: true,
                 set_xalign: 0.0,
                 set_margin_top: 8,
@@ -112,17 +125,17 @@ impl Component for AuraModel {
             add = &model.mode_combo.clone() -> adw::ComboRow {
                 set_title: &t!("aura_mode_title"),
                 #[watch]
-                set_sensitive: model.asusd_available,
+                set_sensitive: model.aura_status == AuraStatus::Available,
             },
 
             add = &model.brightness_combo.clone() -> adw::ComboRow {
                 #[watch]
-                set_sensitive: model.asusd_available,
+                set_sensitive: model.aura_status == AuraStatus::Available,
             },
 
             add = &model.colour_row.clone() -> adw::ActionRow {
                 #[watch]
-                set_sensitive: model.asusd_available
+                set_sensitive: model.aura_status == AuraStatus::Available
                     && !model.current_mode.is_colour_irrelevant(),
             },
         }
@@ -190,7 +203,7 @@ impl Component for AuraModel {
         colour_row.add_suffix(&colour_button);
 
         let model = AuraModel {
-            asusd_available: false,
+            aura_status: AuraStatus::DaemonNotRunning,
             current_mode: saved_mode,
             current_brightness: saved_brightness,
             current_colour: saved_colour,
@@ -206,9 +219,9 @@ impl Component for AuraModel {
         sender.command(|out, shutdown| {
             shutdown
                 .register(async move {
-                    let available = dbus::check_aura_available().await;
-                    out.emit(AuraCommandOutput::AsusdChecked(available));
-                    if !available {
+                    let status = dbus::check_aura_status().await;
+                    out.emit(AuraCommandOutput::AuraStatusChecked(status));
+                    if status != AuraStatus::Available {
                         return;
                     }
 
@@ -326,7 +339,7 @@ impl Component for AuraModel {
                 colour_g,
                 colour_b,
             } => {
-                if !self.asusd_available {
+                if self.aura_status != AuraStatus::Available {
                     return;
                 }
 
@@ -383,8 +396,8 @@ impl Component for AuraModel {
         _root: &Self::Root,
     ) {
         match msg {
-            AuraCommandOutput::AsusdChecked(available) => {
-                self.asusd_available = available;
+            AuraCommandOutput::AuraStatusChecked(status) => {
+                self.aura_status = status;
             }
             AuraCommandOutput::InitData {
                 supported_modes,
