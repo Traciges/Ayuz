@@ -173,6 +173,8 @@ sudo dnf install ayuz
 sudo systemctl enable --now supergfxd.service
 ```
 
+<br>
+
 **Arch Linux (AUR)** <br>
 The application is available in the Arch User Repository. Install using your preferred AUR helper:
 
@@ -185,6 +187,8 @@ The application is available in the Arch User Repository. Install using your pre
 ```bash
 yay -S asus-hub
 ```
+
+<br>
 
 **NixOS (Flakes)** <br>
 Add `ayuz` to your `flake.nix` inputs: `ayuz.url = "github:Klbgr/Ayuz";`.
