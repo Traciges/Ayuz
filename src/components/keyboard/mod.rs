@@ -14,12 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses/.
 
+pub mod aura;
 pub mod auto_backlight;
 pub mod backlight_idle;
 pub mod fn_key;
 pub mod gestures;
 pub mod touchpad;
 
+pub use aura::AuraModel;
+pub use aura::AuraMsg;
 pub use auto_backlight::AutoBacklightModel;
 pub use backlight_idle::BacklightIdleModel;
 pub use fn_key::FnKeyModel;

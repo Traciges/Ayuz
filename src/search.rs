@@ -136,6 +136,20 @@ static SEARCH_INDEX: &[SearchItem] = &[
     },
     // Keyboard
     SearchItem {
+        title_key: "aura_group_title",
+        page_icon: "input-keyboard-symbolic",
+        page_title_key: "tab_keyboard",
+        page_name: "keyboard",
+        component_key: "aura",
+    },
+    SearchItem {
+        title_key: "aura_mode_title",
+        page_icon: "input-keyboard-symbolic",
+        page_title_key: "tab_keyboard",
+        page_name: "keyboard",
+        component_key: "aura",
+    },
+    SearchItem {
         title_key: "backlight_auto_on_title",
         page_icon: "input-keyboard-symbolic",
         page_title_key: "tab_keyboard",
