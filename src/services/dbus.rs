@@ -404,27 +404,6 @@ impl AuraModeNum {
     }
 }
 
-/// LED brightness level. Transmitted as u32 discriminant over D-Bus.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-pub enum LedBrightness {
-    Off = 0,
-    Low = 1,
-    Med = 2,
-    High = 3,
-}
-
-impl From<u32> for LedBrightness {
-    fn from(v: u32) -> Self {
-        match v {
-            1 => Self::Low,
-            2 => Self::Med,
-            3 => Self::High,
-            _ => Self::Off,
-        }
-    }
-}
-
 /// RGB colour triplet. D-Bus signature: `(yyy)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Type, Value, OwnedValue)]
 pub struct Colour {
