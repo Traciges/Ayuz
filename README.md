@@ -160,6 +160,18 @@ Other Linux distributions should work as long as the relevant dependencies can b
 
 ## Installation
 
+**Fedora (Copr - Community Maintained):**
+
+A community member has packaged Asus Hub for Fedora via Copr, providing automatic rebuilds and updates. <br>
+**Note:** This repository is maintained by the community [SkyR0ver](https://github.com/SkyR0ver/asus-hub-rpm), not officially by the upstream project. Currently supported on Fedora 43+.
+
+```bash
+sudo dnf copr enable lukenukem/asus-linux
+sudo dnf copr enable skyr0ver/asus-hub
+sudo dnf install ayuz
+sudo systemctl enable --now supergfxd.service
+```
+
 ### 1. Prerequisites
 
 **Note:** If you plan to use the AppImage (see Step 5), you can skip this step entirely. The AppImage already bundles all the necessary UI dependencies.
@@ -216,16 +228,6 @@ The application is available in the Arch User Repository. Install using your pre
 yay -S ayuz-bin
 ```
 
-**Fedora (Copr - Community Maintained):**
-
-A community member has packaged Asus Hub for Fedora via Copr, providing automatic rebuilds and updates. <br>
-**Note:** This repository is maintained by the community [SkyR0ver](https://github.com/SkyR0ver/asus-hub-rpm), not officially by the upstream project. Currently supported on Fedora 43+.
-
-```bash
-sudo dnf copr enable lukenukem/asus-linux
-sudo dnf copr enable skyr0ver/asus-hub
-sudo dnf install asus-hub
-sudo systemctl enable --now supergfxd.service
 ```
 
 **Manual Download:**
