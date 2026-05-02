@@ -25,19 +25,19 @@
 
 <table align="center">
   <tr>
-    <td align="center"><img src="screenshots/Homepage.png" alt="Homepage" width="100%"/><br/><em>Homepage</em></td>
-    <td align="center"><img src="screenshots/Audio.png" alt="Audio settings" width="100%"/><br/><em>Audio Settings</em></td>
+    <td align="center" colspan="2"><img src="screenshots/Homepage.png" alt="Homepage" width="100%"/><br/><em>Homepage</em></td>
   </tr>
   <tr>
-  <td align="center"><img src="screenshots/Aura.png" alt="Aura settings" width="100%"/><br/><em>Aura Settings</em></td>
+    <td align="center"><img src="screenshots/Audio.png" alt="Audio" width="100%"/><br/><em>Audio</em></td>
+    <td align="center"><img src="screenshots/Aura.png" alt="Aura settings" width="100%"/><br/><em>Aura Settings</em></td>
+  </tr>
+  <tr>
   <td align="center"><img src="screenshots/Display.png" alt="Display settings" width="100%"/><br/><em>Display Settings</em></td>
-</tr>
-<tr>
   <td align="center"><img src="screenshots/Keyboard.png" alt="Keyboard settings" width="100%"/><br/><em>Keyboard Settings</em></td>
-    <td align="center"><img src="screenshots/System.png" alt="System settings" width="100%"/><br/><em>System Settings</em></td>
 </tr>
 <tr>
-  <td align="center" colspan="2"><img src="screenshots/Touchpad.png" alt="Touchpad settings" width="100%"/><br/><em>Touchpad Settings</em></td>
+  <td align="center"><img src="screenshots/System.png" alt="System settings" width="100%"/><br/><em>Keyboard Settings</em></td>
+    <td align="center"><img src="screenshots/Touchpad.png" alt="Touchpad settings" width="100%"/><br/><em>System Settings</em></td>
 </tr>
 </table>
 
