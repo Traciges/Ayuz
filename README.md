@@ -36,8 +36,8 @@
   <td align="center"><img src="screenshots/Keyboard.png" alt="Keyboard settings" width="100%"/><br/><em>Keyboard Settings</em></td>
 </tr>
 <tr>
-  <td align="center"><img src="screenshots/System.png" alt="System settings" width="100%"/><br/><em>Keyboard Settings</em></td>
-    <td align="center"><img src="screenshots/Touchpad.png" alt="Touchpad settings" width="100%"/><br/><em>System Settings</em></td>
+  <td align="center"><img src="screenshots/System.png" alt="System settings" width="100%"/><br/><em>System Settings</em></td>
+    <td align="center"><img src="screenshots/Touchpad.png" alt="Touchpad settings" width="100%"/><br/><em>Touchpad Settings</em></td>
 </tr>
 </table>
 
