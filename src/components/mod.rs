@@ -15,7 +15,9 @@
 // along with this program.  If not, see https://www.gnu.org/licenses/.
 
 pub mod audio;
+pub mod aura;
 pub mod display;
 pub mod home;
 pub mod keyboard;
 pub mod system;
+pub mod touchpad;

@@ -42,6 +42,12 @@ fn default_profile_icon() -> String {
 fn default_volume() -> f64 {
     100.0
 }
+fn default_aura_brightness() -> u32 {
+    2
+}
+fn default_aura_colour_r() -> u8 {
+    166
+}
 
 fn generate_profile_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -89,6 +95,18 @@ pub struct Profile {
     pub battery_deep_sleep_active: bool,
     pub gpu_mode: u32,
     pub apu_mem: i32,
+
+    // Keyboard RGB (Aura)
+    #[serde(default)]
+    pub aura_mode: u32,
+    #[serde(default = "default_aura_brightness")]
+    pub aura_brightness: u32,
+    #[serde(default = "default_aura_colour_r")]
+    pub aura_colour_r: u8,
+    #[serde(default)]
+    pub aura_colour_g: u8,
+    #[serde(default)]
+    pub aura_colour_b: u8,
 }
 
 impl Default for Profile {
@@ -119,6 +137,11 @@ impl Default for Profile {
             battery_deep_sleep_active: false,
             gpu_mode: 0,
             apu_mem: 0,
+            aura_mode: 0,
+            aura_brightness: 2,
+            aura_colour_r: 166,
+            aura_colour_g: 0,
+            aura_colour_b: 0,
         }
     }
 }
@@ -312,6 +335,11 @@ impl AppConfig {
             battery_deep_sleep_active: self.battery_deep_sleep_active,
             gpu_mode: self.gpu_mode,
             apu_mem: self.apu_mem,
+            aura_mode: 0,
+            aura_brightness: 2,
+            aura_colour_r: 166,
+            aura_colour_g: 0,
+            aura_colour_b: 0,
         });
         self.active_profile_id = id;
         self.save();

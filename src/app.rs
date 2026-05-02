@@ -33,18 +33,20 @@ use crate::components::display::target_mode::TargetModeMsg;
 use crate::components::keyboard::auto_backlight::AutoBacklightMsg;
 use crate::components::keyboard::backlight_idle::BacklightIdleMsg;
 use crate::components::keyboard::fn_key::FnKeyMsg;
-use crate::components::keyboard::gestures::GesturesMsg;
-use crate::components::keyboard::touchpad::TouchpadMsg;
+use crate::components::touchpad::gestures::GesturesMsg;
+use crate::components::touchpad::touchpad::TouchpadMsg;
 use crate::components::system::apu_mem::ApuMemMsg;
 use crate::components::system::battery::BatteryMsg;
 use crate::components::system::fan::FanMsg;
 use crate::components::system::gpu::GpuMsg;
 use crate::services::dbus::FanProfile;
+use crate::components::aura::AuraModel;
+use crate::components::aura::AuraMsg;
 use crate::components::keyboard::AutoBacklightModel;
 use crate::components::keyboard::BacklightIdleModel;
 use crate::components::keyboard::FnKeyModel;
-use crate::components::keyboard::GesturesModel;
-use crate::components::keyboard::TouchpadModel;
+use crate::components::touchpad::GesturesModel;
+use crate::components::touchpad::TouchpadModel;
 use crate::components::system::apu_mem::ApuMemModel;
 use crate::components::system::battery::BatteryModel;
 use crate::components::system::fan::FanModel;
@@ -70,6 +72,7 @@ enum AppPage {
     Home,
     Display,
     Keyboard,
+    Aura,
     Touchpad,
     Audio,
     System,
@@ -82,6 +85,7 @@ impl AppPage {
             AppPage::Home => "home",
             AppPage::Display => "display",
             AppPage::Keyboard => "keyboard",
+            AppPage::Aura => "aura",
             AppPage::Touchpad => "touchpad",
             AppPage::Audio => "audio",
             AppPage::System => "system",
@@ -117,6 +121,7 @@ pub struct AppModel {
     target_mode: Controller<TargetModeModel>,
     oled_care: Controller<OledCareModel>,
     color_gamut: Controller<ColorGamutModel>,
+    aura: Controller<AuraModel>,
     fn_key: Controller<FnKeyModel>,
     gestures: Controller<GesturesModel>,
     touchpad: Controller<TouchpadModel>,
@@ -211,6 +216,13 @@ impl SimpleComponent for AppModel {
                     ac_index: p.kbd_timeout_battery_ac_index,
                     battery_index: p.kbd_timeout_battery_only_index,
                 });
+                self.aura.sender().emit(AuraMsg::LoadProfile {
+                    mode: p.aura_mode,
+                    brightness: p.aura_brightness,
+                    colour_r: p.aura_colour_r,
+                    colour_g: p.aura_colour_g,
+                    colour_b: p.aura_colour_b,
+                });
                 self.touchpad.sender().emit(TouchpadMsg::LoadProfile(p.touchpad_active));
                 self.gestures.sender().emit(GesturesMsg::LoadProfile(p.input_gestures_active));
                 self.fn_key.sender().emit(FnKeyMsg::LoadProfile(p.input_fn_key_locked));
@@ -282,6 +294,7 @@ impl SimpleComponent for AppModel {
         let target_mode = launch_component!(TargetModeModel, sender);
         let oled_care = launch_component!(OledCareModel, sender);
         let color_gamut = launch_component!(ColorGamutModel, sender);
+        let aura = launch_component!(AuraModel, sender);
         let fn_key = launch_component!(FnKeyModel, sender);
         let gestures = launch_component!(GesturesModel, sender);
         let touchpad = launch_component!(TouchpadModel, sender);
@@ -312,6 +325,7 @@ impl SimpleComponent for AppModel {
             target_mode,
             oled_care,
             color_gamut,
+            aura,
             fn_key,
             gestures,
             touchpad,
@@ -330,6 +344,7 @@ impl SimpleComponent for AppModel {
         let target_mode_widget = model.target_mode.widget();
         let oled_care_widget = model.oled_care.widget();
         let color_gamut_widget = model.color_gamut.widget();
+        let aura_widget = model.aura.widget();
         let fn_key_widget = model.fn_key.widget();
         let gestures_widget = model.gestures.widget();
         let touchpad_widget = model.touchpad.widget();
@@ -345,6 +360,9 @@ impl SimpleComponent for AppModel {
         display_page.add(target_mode_widget);
         display_page.add(oled_care_widget);
         display_page.add(color_gamut_widget);
+
+        let aura_page = adw::PreferencesPage::new();
+        aura_page.add(aura_widget);
 
         let keyboard_page = adw::PreferencesPage::new();
         keyboard_page.add(auto_backlight_widget);
@@ -468,6 +486,7 @@ impl SimpleComponent for AppModel {
                 "color_gamut",
                 color_gamut_widget.clone().upcast::<gtk4::Widget>(),
             ),
+            ("aura", aura_widget.clone().upcast::<gtk4::Widget>()),
             (
                 "auto_backlight",
                 auto_backlight_widget.clone().upcast::<gtk4::Widget>(),
@@ -503,6 +522,7 @@ impl SimpleComponent for AppModel {
         content_stack.add_named(&home_scroll, Some(AppPage::Home.as_str()));
         content_stack.add_named(&display_page, Some(AppPage::Display.as_str()));
         content_stack.add_named(&keyboard_page, Some(AppPage::Keyboard.as_str()));
+        content_stack.add_named(&aura_page, Some(AppPage::Aura.as_str()));
         content_stack.add_named(&touchpad_page, Some(AppPage::Touchpad.as_str()));
         content_stack.add_named(&audio_page, Some(AppPage::Audio.as_str()));
         content_stack.add_named(&system_page, Some(AppPage::System.as_str()));
