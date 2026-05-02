@@ -247,6 +247,16 @@ pub async fn run_gesture_loop(mut shutdown: watch::Receiver<bool>) {
                     }
                 }
             }
+            EventSummary::Key(
+                _,
+                KeyCode::BTN_TOOL_DOUBLETAP | KeyCode::BTN_TOOL_TRIPLETAP,
+                1,
+            ) => {
+                state = GestureState::Other;
+            }
+            EventSummary::AbsoluteAxis(_, AbsoluteAxisCode::ABS_MT_SLOT, value) if value > 0 => {
+                state = GestureState::Other;
+            }
             _ => {}
         }
     }
