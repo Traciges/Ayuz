@@ -134,6 +134,8 @@ async fn start_volume_listener(sender: relm4::ComponentSender<VolumeModel>) {
     use std::process::Stdio;
     use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::process::Command;
+    use tokio::sync::mpsc;
+    use tokio::time::{sleep, Duration};
 
     let mut child = match Command::new("pactl")
         .arg("subscribe")
@@ -147,12 +149,36 @@ async fn start_volume_listener(sender: relm4::ComponentSender<VolumeModel>) {
         Some(s) => s,
         None => return,
     };
-    let mut lines = BufReader::new(stdout).lines();
-    while let Ok(Some(line)) = lines.next_line().await {
-        if line.contains("'change'") && line.contains("sink") {
+
+    // Capacity 1: extra try_send calls during a burst are silently dropped 
+    let (tx, mut rx) = mpsc::channel::<()>(1);
+
+    tokio::spawn(async move {
+        const DEBOUNCE: Duration = Duration::from_millis(250);
+        while rx.recv().await.is_some() {
+            // Drain any signals that piled up before we woke.
+            while rx.try_recv().is_ok() {}
+            // Reset the 250 ms timer every time a new signal arrives so we
+            // only proceed once the event storm from EasyEffects has settled.
+            loop {
+                tokio::select! {
+                    _ = sleep(DEBOUNCE) => break,
+                    msg = rx.recv() => {
+                        if msg.is_none() { return; }
+                        while rx.try_recv().is_ok() {}
+                    }
+                }
+            }
             if let Some(vol) = read_current_volume().await {
                 sender.input(VolumeMsg::UpdateUi(vol));
             }
+        }
+    });
+
+    let mut lines = BufReader::new(stdout).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        if line.contains("'change'") && line.contains("sink") {
+            let _ = tx.try_send(());
         }
     }
 }
