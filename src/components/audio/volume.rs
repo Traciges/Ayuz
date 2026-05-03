@@ -156,10 +156,9 @@ async fn start_volume_listener(sender: relm4::ComponentSender<VolumeModel>) {
     tokio::spawn(async move {
         const DEBOUNCE: Duration = Duration::from_millis(250);
         while rx.recv().await.is_some() {
-            // Drain any signals that piled up before we woke.
+            // Drain any signals that piled up before
             while rx.try_recv().is_ok() {}
-            // Reset the 250 ms timer every time a new signal arrives so we
-            // only proceed once the event storm from EasyEffects has settled.
+            // Reset the 250 ms timer every time a new signal arrives
             loop {
                 tokio::select! {
                     _ = sleep(DEBOUNCE) => break,
