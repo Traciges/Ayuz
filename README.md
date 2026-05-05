@@ -54,6 +54,7 @@ Instead, the relevant controls are scattered across a variety of independent too
 - Fan profiles via D-Bus calls to `asusd`
 - Keyboard backlight via idle daemons like `swayidle`
 - Aura RGB lighting via raw D-Bus calls to `asusd`
+- AniMatrix support
 - OLED-specific care settings buried in KDE power management config files
 
 Ayuz aims to consolidate all of these into a single, clean GTK4 interface - making it easy to manage your ASUS laptop on Linux without needing to know which tool controls which feature. <br>
