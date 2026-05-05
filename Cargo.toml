@@ -37,7 +37,7 @@ assets = [
     ["packaging/de.guido.ayuz.desktop", "usr/share/applications/", "644"],
     ["packaging/de.guido.ayuz.metainfo.xml", "usr/share/metainfo/", "644"],
     ["assets/trayicon.png", "usr/share/icons/hicolor/128x128/apps/de.guido.ayuz.png", "644"],
-    ["assets/anime/*", "usr/share/ayuz/anime/", "644"],
+    ["assets/anime/**/*.gif", "usr/share/ayuz/anime/", "644"],
 ]
 
 [package.metadata.generate-rpm]
