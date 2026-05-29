@@ -99,6 +99,7 @@ pub const UX3405MA_5X4: Layout = Layout {
 const LAYOUTS: &[(&str, &Layout)] = &[
     ("UX3405MA", &UX3405MA_5X4),
     ("UM3402", &UX3405MA_5X4),
+    ("B3302", &UX3405MA_5X4),
 ];
 
 /// Returns the layout for the given DMI product name, falling back to
