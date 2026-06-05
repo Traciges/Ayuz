@@ -39,6 +39,25 @@ trait SensorProxy {
     fn has_ambient_light(&self) -> zbus::Result<bool>;
 }
 
+#[zbus::proxy(
+    interface = "org.freedesktop.login1.Manager",
+    default_service = "org.freedesktop.login1",
+    default_path = "/org/freedesktop/login1"
+)]
+trait LogindManager {
+    fn get_session(&self, session_id: &str) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
+    fn get_session_by_pid(&self, pid: u32) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
+}
+
+#[zbus::proxy(
+    interface = "org.freedesktop.login1.Session",
+    default_service = "org.freedesktop.login1"
+)]
+trait LogindSession {
+    #[zbus(property)]
+    fn locked_hint(&self) -> zbus::Result<bool>;
+}
+
 /// State for the ambient-light-based keyboard backlight automation component.
 pub struct AutoBacklightModel {
     /// Whether the `iio-sensor-proxy` D-Bus service is reachable.
@@ -324,6 +343,42 @@ async fn is_sensor_available() -> bool {
     proxy.has_ambient_light().await.is_ok()
 }
 
+/// Resolves a logind [`LogindSessionProxy`] for the current desktop session, used to detect
+/// whether the screen is locked.
+///
+/// The session is looked up by `XDG_SESSION_ID` first, falling back to the running process'
+/// PID. Returns `None` if logind is unavailable or the session cannot be resolved, in which
+/// case callers treat the session as unlocked (preserving the pre-lock-aware behaviour).
+async fn resolve_session_proxy(conn: &zbus::Connection) -> Option<LogindSessionProxy<'static>> {
+    let manager = LogindManagerProxy::new(conn).await.ok()?;
+
+    let path = match std::env::var("XDG_SESSION_ID") {
+        Ok(id) if !id.is_empty() => match manager.get_session(&id).await {
+            Ok(p) => Some(p),
+            Err(_) => manager.get_session_by_pid(std::process::id()).await.ok(),
+        },
+        _ => manager.get_session_by_pid(std::process::id()).await.ok(),
+    }?;
+
+    LogindSessionProxy::builder(conn)
+        .path(path)
+        .ok()?
+        .build()
+        .await
+        .ok()
+}
+
+/// Returns `true` if the given session reports itself as locked via logind's `LockedHint`.
+///
+/// A missing proxy or a failed property read is treated as "not locked" so ambient automation
+/// keeps working on systems where logind lock state is unavailable.
+async fn session_locked(session: Option<&LogindSessionProxy<'_>>) -> bool {
+    match session {
+        Some(proxy) => proxy.locked_hint().await.unwrap_or(false),
+        None => false,
+    }
+}
+
 /// Sets the keyboard backlight brightness level (0–3) via the UPower D-Bus interface.
 ///
 /// Returns `true` on success; failures are treated as non-fatal by callers.
@@ -412,6 +467,17 @@ fn start_sensor_loop(
             return;
         }
 
+        // Used to skip ambient-driven brightness changes while the session is locked, so a
+        // change in ambient light does not switch the keyboard backlight on behind the lock screen.
+        let session = resolve_session_proxy(&conn).await;
+        // Re-applies the ambient rules when the session unlocks, since light-level events that
+        // arrived while locked were ignored and would otherwise not be reconsidered until the
+        // ambient level next changes by more than the hysteresis.
+        let mut lock_stream = match &session {
+            Some(proxy) => Some(proxy.receive_locked_hint_changed().await),
+            None => None,
+        };
+
         let level_stream = proxy.receive_light_level_changed().await;
         let mut current_brightness: i32 = -1;
         let mut last_level: f64 = -100.0;
@@ -419,15 +485,17 @@ fn start_sensor_loop(
         match proxy.light_level().await {
             Ok(level) => {
                 last_level = level;
-                current_brightness = light_sensor_logic(
-                    level,
-                    auto_brighten,
-                    brighten_threshold,
-                    auto_dim,
-                    dim_threshold,
-                    current_brightness,
-                )
-                .await;
+                if !session_locked(session.as_ref()).await {
+                    current_brightness = light_sensor_logic(
+                        level,
+                        auto_brighten,
+                        brighten_threshold,
+                        auto_dim,
+                        dim_threshold,
+                        current_brightness,
+                    )
+                    .await;
+                }
                 out.emit(AutoBacklightCommandOutput::LuxUpdated(level));
             }
             Err(e) => tracing::warn!(
@@ -445,6 +513,29 @@ fn start_sensor_loop(
                         break;
                     }
                 }
+                changed_lock = async {
+                    match lock_stream.as_mut() {
+                        Some(s) => s.next().await,
+                        None => std::future::pending().await,
+                    }
+                } => {
+                    if let Some(change) = changed_lock {
+                        // On unlock, re-evaluate the latest known ambient level. Reset the cached
+                        // brightness to `-1` so the rules apply even if the lock screen changed the
+                        // hardware brightness behind our back.
+                        if matches!(change.get().await, Ok(false)) && last_level >= 0.0 {
+                            current_brightness = light_sensor_logic(
+                                last_level,
+                                auto_brighten,
+                                brighten_threshold,
+                                auto_dim,
+                                dim_threshold,
+                                -1,
+                            )
+                            .await;
+                        }
+                    }
+                }
                 maybe = level_stream.next() => {
                     if let Some(changed) = maybe {
                         match changed.get().await {
@@ -453,15 +544,17 @@ fn start_sensor_loop(
                                     continue;
                                 }
                                 last_level = level;
-                                current_brightness = light_sensor_logic(
-                                    level,
-                                    auto_brighten,
-                                    brighten_threshold,
-                                    auto_dim,
-                                    dim_threshold,
-                                    current_brightness,
-                                )
-                                .await;
+                                if !session_locked(session.as_ref()).await {
+                                    current_brightness = light_sensor_logic(
+                                        level,
+                                        auto_brighten,
+                                        brighten_threshold,
+                                        auto_dim,
+                                        dim_threshold,
+                                        current_brightness,
+                                    )
+                                    .await;
+                                }
                                 out.emit(AutoBacklightCommandOutput::LuxUpdated(level));
                             }
                             Err(e) => tracing::warn!(
