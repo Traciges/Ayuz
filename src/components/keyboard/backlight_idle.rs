@@ -76,15 +76,6 @@ fn busctl_brightness_cmd(value: i32, battery_only: bool) -> String {
 }
 
 /// Builds the `busctl` resume command `swayidle` runs when the user returns from idle.
-///
-/// When ambient automation is active, the restored brightness honours the current ambient
-/// light instead of unconditionally jumping to full (issue #39): the live `LightLevel` is read
-/// from `iio-sensor-proxy` and compared against the same thresholds the ambient loop uses. Resume
-/// defaults to full brightness but drops to off when the room is bright enough — at or above
-/// `brighten_threshold` for auto-brighten, above `dim_threshold` for auto-dim — so the keyboard
-/// does not turn on at full brightness when resuming in a well-lit room. If neither automation is
-/// enabled — or the sensor value cannot be read — it falls back to full brightness, matching the
-/// prior behaviour.
 fn busctl_resume_cmd(
     battery_only: bool,
     auto_brighten: bool,
@@ -101,13 +92,7 @@ fn busctl_resume_cmd(
     let read_lux = "lvl=$(busctl --system get-property net.hadess.SensorProxy \
         /net/hadess/SensorProxy net.hadess.SensorProxy LightLevel 2>/dev/null | awk '{print $2}')";
 
-    // Default to full brightness — this is also the fallback when the sensor value can't be read
-    // (`$lvl` empty) — then turn the backlight off when the ambient light shows the room is bright
-    // enough not to need it. The thresholds mirror `light_sensor_logic` in `auto_backlight`:
-    // auto-brighten only lights the keyboard while `level < brighten_threshold`, so at or above
-    // that level the room is "not dark" and resume must stay off; auto-dim treats `level >
-    // dim_threshold` as "bright". Either condition resumes to off instead of full, so typing in a
-    // well-lit room no longer turns the keyboard on at full brightness (issue #39).
+    // Default to full brightness
     let mut decide = String::from("v=3");
     if auto_dim {
         decide.push_str(&format!(
@@ -286,7 +271,9 @@ impl Component for BacklightIdleModel {
                 }
             }
             BacklightIdleMsg::BatteryOnlyTimeChanged(index) => {
-                AppConfig::update(|c| c.active_profile_mut().kbd_timeout_battery_only_index = index);
+                AppConfig::update(|c| {
+                    c.active_profile_mut().kbd_timeout_battery_only_index = index
+                });
                 if self.timeout_mode == TimeoutMode::BatteryOnly {
                     self.apply_timeout(TimeoutMode::BatteryOnly, &sender);
                 }
@@ -298,9 +285,12 @@ impl Component for BacklightIdleModel {
             } => {
                 let timeout_mode = TimeoutMode::from(mode);
                 self.timeout_mode = timeout_mode;
-                self.check_never.set_active(timeout_mode == TimeoutMode::Never);
-                self.check_battery_and_ac.set_active(timeout_mode == TimeoutMode::BatteryAndAc);
-                self.check_battery_only.set_active(timeout_mode == TimeoutMode::BatteryOnly);
+                self.check_never
+                    .set_active(timeout_mode == TimeoutMode::Never);
+                self.check_battery_and_ac
+                    .set_active(timeout_mode == TimeoutMode::BatteryAndAc);
+                self.check_battery_only
+                    .set_active(timeout_mode == TimeoutMode::BatteryOnly);
                 self.dropdown_battery_and_ac.set_selected(ac_index);
                 self.dropdown_battery_only.set_selected(battery_index);
                 self.apply_timeout(timeout_mode, &sender);
