@@ -79,15 +79,7 @@ fn main() {
 
     gtk4::glib::set_prgname(Some("de.guido.ayuz"));
 
-    // Initialize libadwaita explicitly before touching any Adwaita API (the
-    // StyleManager call below) or constructing Adwaita widgets. relm4's
-    // adw::Application only runs adw_init() during its `startup` handler, which
-    // is too late: StyleManager::default() runs here before a.run(), and on
-    // some compositors (observed on Linux Mint / Wayland) this ordering leaves
-    // Adwaita's GResource bundle - its base CSS and widget .ui templates -
-    // unregistered. Every AdwActionRow/AdwPreferencesGroup/AdwComboRow template
-    // lookup then returns NULL, triggering the GTK assertion cascade and a
-    // segfault. adw::init() registers the bundle (and is idempotent).
+    // Initialize libadwaita explicitly before touching any Adwaita API
     if let Err(e) = relm4::adw::init() {
         eprintln!("ayuz: failed to initialize libadwaita: {e}");
         std::process::exit(1);
