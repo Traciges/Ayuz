@@ -27,6 +27,9 @@ pub const SYS_THERMAL_ZONE0_TEMP: &str = "/sys/class/thermal/thermal_zone0/temp"
 pub const SYS_MEM_SLEEP: &str = "/sys/power/mem_sleep";
 pub const DEV_UINPUT: &str = "/dev/uinput";
 pub const PROC_BUS_INPUT_DEVICES: &str = "/proc/bus/input/devices";
+/// hwmon devices; the CPU temperature is read from the CPU driver's sensor
+/// here (k10temp/zenpower on AMD, coretemp on Intel) when available.
+pub const SYS_HWMON_DIR: &str = "/sys/class/hwmon";
 
 /// Resolves the directory where AniMatrix GIF assets are stored.
 ///
