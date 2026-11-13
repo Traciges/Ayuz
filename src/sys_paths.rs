@@ -19,8 +19,9 @@ pub const SYS_BOARD_NAME: &str = "/sys/class/dmi/id/board_name";
 pub const SYS_BIOS_VERSION: &str = "/sys/class/dmi/id/bios_version";
 pub const SYS_BIOS_DATE: &str = "/sys/class/dmi/id/bios_date";
 pub const SYS_PRODUCT_SERIAL: &str = "/sys/class/dmi/id/product_serial";
-pub const SYS_BATTERY0_CAPACITY: &str = "/sys/class/power_supply/BAT0/capacity";
-pub const SYS_BATTERY1_CAPACITY: &str = "/sys/class/power_supply/BAT1/capacity";
+/// Battery names differ between models (BAT0, BAT1, BATT, BATC, ...), so
+/// batteries are discovered by scanning this directory for `type == Battery`.
+pub const SYS_POWER_SUPPLY_DIR: &str = "/sys/class/power_supply";
 pub const SYS_LOAD_AVG: &str = "/proc/loadavg";
 pub const SYS_MEM_INFO: &str = "/proc/meminfo";
 pub const SYS_THERMAL_ZONE0_TEMP: &str = "/sys/class/thermal/thermal_zone0/temp";

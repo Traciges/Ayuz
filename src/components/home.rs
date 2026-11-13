@@ -165,20 +165,41 @@ fn metric_card(icon_name: &str, title: &str) -> (gtk::Box, gtk::Label) {
     (card, value_label)
 }
 
+/// Capacities (0-100) of all system batteries, whatever the kernel named them
+/// (BAT0, BAT1, BATT, ...). Peripheral batteries such as wireless mice or
+/// headsets report `scope == Device` and are skipped.
+async fn system_battery_capacities() -> Vec<u8> {
+    let mut caps = Vec::new();
+    let Ok(mut entries) = tokio::fs::read_dir(SYS_POWER_SUPPLY_DIR).await else {
+        return caps;
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let dir = entry.path();
+        let read = |name: &str| tokio::fs::read_to_string(dir.join(name));
+        let is_battery = read("type").await.is_ok_and(|t| t.trim() == "Battery");
+        let is_peripheral = read("scope").await.is_ok_and(|s| s.trim() == "Device");
+        if !is_battery || is_peripheral {
+            continue;
+        }
+        if let Some(c) = read("capacity")
+            .await
+            .ok()
+            .and_then(|s| s.trim().parse::<u8>().ok())
+        {
+            caps.push(c.min(100));
+        }
+    }
+    caps
+}
+
 async fn fetch_metrics() -> HomeCommandOutput {
     let battery = {
-        let b0 = tokio::fs::read_to_string(SYS_BATTERY0_CAPACITY)
-            .await
-            .ok()
-            .and_then(|s| s.trim().parse::<u8>().ok());
-        let b1 = tokio::fs::read_to_string(SYS_BATTERY1_CAPACITY)
-            .await
-            .ok()
-            .and_then(|s| s.trim().parse::<u8>().ok());
-        match (b0, b1) {
-            (Some(a), Some(b)) => format!("{}%", (a as u16 + b as u16) / 2),
-            (Some(a), None) | (None, Some(a)) => format!("{}%", a),
-            (None, None) => "N/A".to_string(),
+        let caps = system_battery_capacities().await;
+        if caps.is_empty() {
+            "N/A".to_string()
+        } else {
+            let sum: u32 = caps.iter().map(|&c| c as u32).sum();
+            format!("{}%", sum / caps.len() as u32)
         }
     };
 
