@@ -209,13 +209,13 @@ async fn fetch_metrics() -> HomeCommandOutput {
             .map(|s| s.split_whitespace().next().unwrap_or("?").to_string())
             .unwrap_or_else(|_| "?".to_string());
 
-        let temp = tokio::fs::read_to_string(SYS_THERMAL_ZONE0_TEMP)
-            .await
-            .map(|s| {
-                let millideg: i32 = s.trim().parse().unwrap_or(0);
-                format!("{}°C", millideg / 1000)
-            })
-            .unwrap_or_else(|_| "?°C".to_string());
+        let temp = cpu_temp_millideg(
+            std::path::Path::new(SYS_HWMON_DIR),
+            std::path::Path::new(SYS_THERMAL_ZONE0_TEMP),
+        )
+        .await
+        .map(|millideg| format!("{}°C", millideg / 1000))
+        .unwrap_or_else(|| "?°C".to_string());
 
         format!("{}% | {}", load, temp)
     };
@@ -272,6 +272,76 @@ async fn fetch_metrics() -> HomeCommandOutput {
         ram,
         disk,
     }
+}
+
+/// hwmon driver names of CPU temperature sensors, with the preferred sensor
+/// labels in order (`Tdie` is the real die temperature on AMD, `Tctl` may
+/// include a fan-control offset; `Package id 0` is the whole Intel package).
+const CPU_HWMON_DRIVERS: &[(&str, &[&str])] = &[
+    ("k10temp", &["Tdie", "Tctl"]),
+    ("zenpower", &["Tdie", "Tctl"]),
+    ("coretemp", &["Package id 0"]),
+];
+
+async fn read_trimmed(path: &std::path::Path) -> Option<String> {
+    tokio::fs::read_to_string(path)
+        .await
+        .ok()
+        .map(|s| s.trim().to_string())
+}
+
+/// Reads a sysfs temperature file (millidegrees), if present and numeric.
+async fn read_millideg(path: &std::path::Path) -> Option<i32> {
+    read_trimmed(path).await?.parse().ok()
+}
+
+/// Temperature of one CPU hwmon device: the first preferred label that
+/// exists, otherwise `temp1_input`.
+async fn hwmon_cpu_temp(dir: &std::path::Path, labels: &[&str]) -> Option<i32> {
+    let mut by_label = Vec::new();
+    if let Ok(mut entries) = tokio::fs::read_dir(dir).await {
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let file = entry.file_name().to_string_lossy().into_owned();
+            if let Some(prefix) = file.strip_suffix("_label") {
+                if let Some(label) = read_trimmed(&entry.path()).await {
+                    by_label.push((label, dir.join(format!("{prefix}_input"))));
+                }
+            }
+        }
+    }
+    for wanted in labels {
+        if let Some((_, input)) = by_label.iter().find(|(l, _)| l == wanted) {
+            if let Some(t) = read_millideg(input).await {
+                return Some(t);
+            }
+        }
+    }
+    read_millideg(&dir.join("temp1_input")).await
+}
+
+/// CPU temperature in millidegrees Celsius.
+///
+/// `thermal_zone0` is often a slow ACPI zone (`acpitz`) rather than the CPU,
+/// so the CPU driver's own hwmon sensor is preferred. If none is found the
+/// previous behaviour (reading `fallback`, i.e. `thermal_zone0`) is kept.
+async fn cpu_temp_millideg(hwmon_dir: &std::path::Path, fallback: &std::path::Path) -> Option<i32> {
+    let mut devices = Vec::new();
+    if let Ok(mut entries) = tokio::fs::read_dir(hwmon_dir).await {
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            devices.push(entry.path());
+        }
+    }
+    devices.sort(); // deterministic: hwmon0, hwmon1, ...
+    for (driver, labels) in CPU_HWMON_DRIVERS {
+        for dev in &devices {
+            if read_trimmed(&dev.join("name")).await.as_deref() == Some(*driver) {
+                if let Some(t) = hwmon_cpu_temp(dev, labels).await {
+                    return Some(t);
+                }
+            }
+        }
+    }
+    read_millideg(fallback).await
 }
 
 fn build_profile_card(
