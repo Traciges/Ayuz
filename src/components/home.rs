@@ -274,9 +274,12 @@ async fn read_millideg(path: &std::path::Path) -> Option<i32> {
     read_trimmed(path).await?.parse().ok()
 }
 
-/// Temperature of one CPU hwmon device: the first preferred label that
-/// exists, otherwise `temp1_input`.
-async fn hwmon_cpu_temp(dir: &std::path::Path, labels: &[&str]) -> Option<i32> {
+/// Temperature file of one CPU hwmon device (and its current value): the
+/// first preferred label that exists, otherwise `temp1_input`.
+async fn hwmon_cpu_input(
+    dir: &std::path::Path,
+    labels: &[&str],
+) -> Option<(std::path::PathBuf, i32)> {
     let mut by_label = Vec::new();
     if let Ok(mut entries) = tokio::fs::read_dir(dir).await {
         while let Ok(Some(entry)) = entries.next_entry().await {
@@ -291,19 +294,20 @@ async fn hwmon_cpu_temp(dir: &std::path::Path, labels: &[&str]) -> Option<i32> {
     for wanted in labels {
         if let Some((_, input)) = by_label.iter().find(|(l, _)| l == wanted) {
             if let Some(t) = read_millideg(input).await {
-                return Some(t);
+                return Some((input.clone(), t));
             }
         }
     }
-    read_millideg(&dir.join("temp1_input")).await
+    let input = dir.join("temp1_input");
+    let t = read_millideg(&input).await?;
+    Some((input, t))
 }
 
-/// CPU temperature in millidegrees Celsius.
-///
-/// `thermal_zone0` is often a slow ACPI zone (`acpitz`) rather than the CPU,
-/// so the CPU driver's own hwmon sensor is preferred. If none is found the
-/// previous behaviour (reading `fallback`, i.e. `thermal_zone0`) is kept.
-async fn cpu_temp_millideg(hwmon_dir: &std::path::Path, fallback: &std::path::Path) -> Option<i32> {
+/// Searches hwmon for the CPU temperature file, else uses `fallback`.
+async fn find_cpu_temp_input(
+    hwmon_dir: &std::path::Path,
+    fallback: &std::path::Path,
+) -> Option<(std::path::PathBuf, i32)> {
     let mut devices = Vec::new();
     if let Ok(mut entries) = tokio::fs::read_dir(hwmon_dir).await {
         while let Ok(Some(entry)) = entries.next_entry().await {
@@ -314,13 +318,46 @@ async fn cpu_temp_millideg(hwmon_dir: &std::path::Path, fallback: &std::path::Pa
     for (driver, labels) in CPU_HWMON_DRIVERS {
         for dev in &devices {
             if read_trimmed(&dev.join("name")).await.as_deref() == Some(*driver) {
-                if let Some(t) = hwmon_cpu_temp(dev, labels).await {
-                    return Some(t);
+                if let Some(found) = hwmon_cpu_input(dev, labels).await {
+                    return Some(found);
                 }
             }
         }
     }
-    read_millideg(fallback).await
+    let t = read_millideg(fallback).await?;
+    Some((fallback.to_path_buf(), t))
+}
+
+/// Cached result of `find_cpu_temp_input`; searched again only if it fails.
+static CPU_TEMP_INPUT: std::sync::Mutex<Option<std::path::PathBuf>> =
+    std::sync::Mutex::new(None);
+
+/// CPU temperature in millidegrees Celsius.
+///
+/// `thermal_zone0` is often a slow ACPI zone (`acpitz`) rather than the CPU,
+/// so the CPU driver's own hwmon sensor is preferred. If none is found the
+/// previous behaviour (reading `fallback`, i.e. `thermal_zone0`) is kept.
+async fn cpu_temp_millideg(hwmon_dir: &std::path::Path, fallback: &std::path::Path) -> Option<i32> {
+    // Clone so the lock isn't held across `.await`.
+    let cached = CPU_TEMP_INPUT.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    if let Some(path) = cached {
+        if let Some(t) = read_millideg(&path).await {
+            return Some(t);
+        }
+    }
+
+    let found = find_cpu_temp_input(hwmon_dir, fallback).await;
+    let mut cache = CPU_TEMP_INPUT.lock().unwrap_or_else(|e| e.into_inner());
+    match found {
+        Some((path, t)) => {
+            *cache = Some(path);
+            Some(t)
+        }
+        None => {
+            *cache = None;
+            None
+        }
+    }
 }
 
 fn build_profile_card(
