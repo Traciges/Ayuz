@@ -64,6 +64,12 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.1.11" date="2026-11-20">
+      <description>
+        <p
+        >Improved hardware detection on the home screen: batteries are now detected by type instead of the hardcoded BAT0/BAT1 names, and the CPU temperature is read from the CPU sensor (k10temp/zenpower or coretemp) instead of thermal_zone0, with the sensor path cached between refreshes.</p>
+      </description>
+    </release>
     <release version="1.1.10" date="2026-08-18">
       <description>
         <p
